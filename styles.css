@@ -47,6 +47,17 @@ html, body {
   font-family: var(--font);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+
+  /* ── 휴대폰에서만 문제가 되는 것들 ──
+     touch-action: 두 번 두드리면 확대되는 기본 동작을 끈다. 카드를 빠르게
+       연달아 누르면 브라우저가 그걸 더블탭으로 읽어 판이 확대돼 버린다.
+       manipulation 은 확대만 끄고 스크롤·핀치는 남긴다.
+     overscroll-behavior: iOS 에서 끝까지 끌면 화면 전체가 고무줄처럼 딸려
+       오는 것을 막는다.
+     tap-highlight: 누를 때 회색 네모가 덧씌워지는 것을 없앤다. */
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button { font-family: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
@@ -815,12 +826,21 @@ body.is-scaled #app {
      좌표로 직접 가운데를 잡는다 */
   position: absolute; left: 50%; top: 50%;
   width: var(--stage-w); height: var(--stage-h);
-  transform: translate(-50%, -50%) scale(var(--stage-scale));
+  /* dx·dy 는 노치가 한쪽에만 있을 때의 보정 (ui/stage.js) */
+  transform:
+    translate(calc(-50% + var(--stage-dx, 0px)), calc(-50% + var(--stage-dy, 0px)))
+    scale(var(--stage-scale));
   transform-origin: center center;
   overflow: hidden;
 }
-/* 뷰포트 단위는 축소된 판 안에서는 뜻이 달라진다 — 판 기준 %로 바꾼다 */
+/* ★ 뷰포트 단위(vw·vh)는 축소된 판 안에서 뜻이 달라진다. 판이 논리 1467px
+   이어도 vw 는 기기 화면(800px)을 가리키므로, 손패가 68vw = 544px 로
+   눌려 카드가 34px 씩만 보였다. 판 기준 %로 바꾼다. */
 body.is-scaled .overlay-body { width: min(1080px, 94%); max-height: 88%; }
+body.is-scaled .hand { width: min(1000px, 68%); }
+body.is-scaled .title-wrap { width: min(940px, 94%); }
+body.is-scaled .game-title { font-size: 60px; }
+body.is-scaled .side-enemy { gap: 44px; }
 
 /* 세로로 들었을 때 — 돌려 달라고만 한다 */
 .rotate-note { display: none; }

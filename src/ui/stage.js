@@ -18,8 +18,8 @@ const STAGE_H = 660;          // 논리 높이 — 데스크톱 배치가 편하
 const STAGE_W_MIN = 940;
 const STAGE_W_MAX = 1500;
 
-/** 이 뷰포트를 그냥 쓰면 되는가 */
-const fitsNatively = () => window.innerWidth >= 900 && window.innerHeight >= 620;
+/** 이 크기를 그냥 쓰면 되는가 */
+const fitsNatively = (w, h) => w >= 900 && h >= 620;
 
 /**
  * 안내를 띄울 만큼 세로로 길쭉한가.
@@ -28,18 +28,42 @@ const fitsNatively = () => window.innerWidth >= 900 && window.innerHeight >= 620
  */
 const tooTall = () => window.innerHeight > window.innerWidth && window.innerWidth < 820;
 
+/**
+ * 노치·홈바가 먹는 가장자리 크기. 가로로 든 아이폰은 노치가 화면 왼쪽이나
+ * 오른쪽에 오는데, index.html 이 viewport-fit=cover 라 그냥 두면 판이 그
+ * 밑으로 깔린다. CSS 의 env() 값을 재서 쓸 수 있는 크기부터 빼 둔다.
+ */
+function safeArea() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;'
+    + 'top:0;left:0;'
+    + 'padding:env(safe-area-inset-top) env(safe-area-inset-right)'
+    + ' env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const px = (v) => parseFloat(v) || 0;
+  const out = {
+    l: px(cs.paddingLeft), r: px(cs.paddingRight),
+    t: px(cs.paddingTop), b: px(cs.paddingBottom),
+  };
+  probe.remove();
+  return out;
+}
+
 function apply() {
   const root = document.documentElement;
   const body = document.body;
-  const vw = window.innerWidth, vh = window.innerHeight;
+  const ins = safeArea();
+  const vw = window.innerWidth - ins.l - ins.r;
+  const vh = window.innerHeight - ins.t - ins.b;
 
   body.classList.toggle('is-portrait', tooTall());
 
-  if (fitsNatively()) {
+  if (fitsNatively(vw, vh)) {
     body.classList.remove('is-scaled');
-    root.style.removeProperty('--stage-w');
-    root.style.removeProperty('--stage-h');
-    root.style.removeProperty('--stage-scale');
+    for (const k of ['--stage-w', '--stage-h', '--stage-scale', '--stage-dx', '--stage-dy']) {
+      root.style.removeProperty(k);
+    }
     return;
   }
 
@@ -52,6 +76,9 @@ function apply() {
   root.style.setProperty('--stage-w', `${w}px`);
   root.style.setProperty('--stage-h', `${STAGE_H}px`);
   root.style.setProperty('--stage-scale', String(scale));
+  // 노치가 한쪽에만 있으면 안전 영역의 가운데는 화면 가운데가 아니다
+  root.style.setProperty('--stage-dx', `${(ins.l - ins.r) / 2}px`);
+  root.style.setProperty('--stage-dy', `${(ins.t - ins.b) / 2}px`);
 }
 
 export function initStage() {
