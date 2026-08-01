@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>포켓스파이어</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ 타이틀 ══════════════════════════════════════════════ -->
+  <section id="screen-title" class="screen is-on">
+    <div class="title-wrap">
+      <h1 class="game-title">포켓<span>스파이어</span></h1>
+      <p class="game-sub">잡고 · 짜고 · 첨탑을 오른다</p>
+
+      <div class="starter-pick">
+        <h2 class="pick-head">파트너를 고른다</h2>
+        <div id="starter-list" class="starter-list"></div>
+      </div>
+
+      <div class="title-actions">
+        <label class="seed-row">
+          <span>시드</span>
+          <input id="seed-input" type="text" maxlength="12" spellcheck="false" />
+        </label>
+        <button id="btn-start" class="btn btn-primary btn-lg" disabled>모험을 시작한다</button>
+      </div>
+
+      <p class="title-note">
+        같은 시드는 같은 지도·같은 보상을 낸다. 비워 두면 무작위로 정해진다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ 지도 ════════════════════════════════════════════════ -->
+  <section id="screen-map" class="screen">
+    <div class="topbar" data-topbar></div>
+    <div class="relicbar" data-relicbar></div>
+    <div class="map-head">
+      <h2>1막 · 상록의 숲</h2>
+      <div class="map-legend"></div>
+    </div>
+    <div class="map-scroll"><canvas id="map-canvas"></canvas><div id="map-nodes"></div></div>
+  </section>
+
+  <!-- ══ 전투 ════════════════════════════════════════════════ -->
+  <section id="screen-combat" class="screen">
+    <div class="topbar" data-topbar></div>
+    <div class="relicbar" data-relicbar></div>
+
+    <div class="arena" id="arena">
+      <div class="arena-bg"></div>
+
+      <!-- 왼쪽: 내 파티 -->
+      <div class="side side-player">
+        <div id="active-slot" class="unit unit-active"></div>
+        <div id="bench" class="bench"></div>
+      </div>
+
+      <!-- 오른쪽: 적 -->
+      <div id="enemy-slots" class="side side-enemy"></div>
+
+      <div id="fx-layer" class="fx-layer"></div>
+      <div id="combat-log" class="combat-log"></div>
+    </div>
+
+    <div class="handbar">
+      <div class="hand-left">
+        <div id="energy-orb" class="energy-orb ball">
+          <span class="ball-top"></span><span class="ball-band"></span>
+          <span class="ball-btn"><span id="energy-text">0/3</span></span>
+        </div>
+        <button id="pile-draw" class="pile ball pile-draw" title="뽑을 카드">
+          <span class="ball-top"></span><span class="ball-band"></span>
+          <span class="ball-btn"><span class="pile-count">0</span></span>
+        </button>
+      </div>
+
+      <div id="hand" class="hand"></div>
+
+      <div class="hand-right">
+        <button id="btn-endturn" class="btn btn-endturn">턴 종료</button>
+        <button id="pile-discard" class="pile ball pile-discard" title="버린 카드">
+          <span class="ball-top"></span><span class="ball-band"></span>
+          <span class="ball-btn"><span class="pile-count">0</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div id="switch-hint" class="switch-hint"></div>
+  </section>
+
+  <!-- ══ 덮개 화면들 ══════════════════════════════════════════ -->
+  <div id="overlay" class="overlay">
+    <div id="overlay-body" class="overlay-body"></div>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
