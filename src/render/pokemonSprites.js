@@ -471,12 +471,53 @@ export function spriteFor(speciesId, colors, scale = 5) {
 
 /**
  * <img> 에 넣을 주소.
- * 내려받은 아트워크가 있으면 그 파일을, 없으면 도트를 구워 data URL 로 준다.
- * 부르는 쪽은 둘을 구분할 필요가 없다.
+ * 내려받은 아트워크가 있으면 그 파일을, 목록에 없는 종이면 도트를 구워 준다.
+ *
+ * ★ 주의: 이건 "파일이 있을 것"이라는 **약속**일 뿐 확인이 아니다.
+ *   HAS_ASSET 은 하드코딩 목록이라, fetch_assets.py 를 안 돌려 파일이 실제로
+ *   없으면 404 가 나고 이미지가 깨진다. 그래서 화면에는 이 함수를 직접 쓰지
+ *   말고 아래 monImg() 로 <img> 를 만들어야 한다.
  */
 export function spriteUrl(speciesId, colors, scale = 5) {
   if (HAS_ASSET.has(speciesId)) return artPath(speciesId);
   return spriteFor(speciesId, colors, scale).toDataURL();
+}
+
+/** 이번 세션에서 이미 실패한 종 — 두 번 요청하지 않는다 */
+const failed = new Set();
+
+/**
+ * 포켓몬 그림 <img> 를 만든다.
+ *
+ * 아트워크 파일이 없으면(= fetch_assets.py 를 안 돌렸으면) 로드 실패를 잡아
+ * 코드로 찍은 도트로 갈아 끼운다. 자산을 안 받아도 게임이 그대로 돌아가야
+ * 한다는 약속을 실제로 지키는 곳이 여기다.
+ *
+ * @param opts.className  <img> 에 붙일 클래스
+ * @param opts.scale      도트로 떨어졌을 때의 확대 배율
+ */
+export function monImg(speciesId, colors, scale = 5, opts = {}) {
+  const img = document.createElement('img');
+  if (opts.className) img.className = opts.className;
+  img.alt = opts.alt ?? '';
+  if (opts.style) Object.assign(img.style, opts.style);
+
+  const dot = () => spriteFor(speciesId, colors, scale).toDataURL();
+
+  if (failed.has(speciesId) || !HAS_ASSET.has(speciesId)) {
+    img.src = dot();
+    img.classList.add('is-dot');          // 도트는 확대 보간을 끈다
+    return img;
+  }
+
+  img.src = artPath(speciesId);
+  img.addEventListener('error', function onFail() {
+    img.removeEventListener('error', onFail);
+    failed.add(speciesId);
+    img.classList.add('is-dot');
+    img.src = dot();
+  });
+  return img;
 }
 
 export const hasSprite = (id) => !!DRAW[id];

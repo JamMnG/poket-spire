@@ -13,7 +13,7 @@ import { el, boldNums } from './dom.js';
 import { resolveCard, KIND } from '../data/cards.js';
 import { typeKo, typeColor } from '../data/types.js';
 import { POKEMON } from '../data/pokemon.js';
-import { spriteUrl } from '../render/pokemonSprites.js';
+import { monImg } from '../render/pokemonSprites.js';
 import { cardEmblem } from '../render/cardEmblem.js';
 
 /**
@@ -27,7 +27,7 @@ export function cardEl(inst, opts = {}) {
   // 소유 포켓몬이 있으면 그 도트를 — "누구의 기술인가" 가 타입보다 먼저 알아야
   // 하는 정보라서. 나머지는 타입 엠블럼을 그린다.
   const art = (c.owner && POKEMON[c.owner])
-    ? el('img.art-mon', { src: spriteUrl(c.owner, POKEMON[c.owner], 4), alt: POKEMON[c.owner].ko })
+    ? monImg(c.owner, POKEMON[c.owner], 4, { className: 'art-mon', alt: POKEMON[c.owner].ko })
     : el('div.art-emblem', { html: cardEmblem(c) });
 
   const kids = [

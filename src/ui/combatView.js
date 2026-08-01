@@ -13,7 +13,7 @@
 import { el, $, mount, clear, batched } from './dom.js';
 import { cardEl, layoutFan } from './cardView.js';
 import { showTip, hideTip, attachTip } from './tooltip.js';
-import { spriteUrl } from '../render/pokemonSprites.js';
+import { monImg } from '../render/pokemonSprites.js';
 import { POKEMON } from '../data/pokemon.js';
 import { ENEMIES } from '../data/enemies.js';
 import { typeKo, typeColor, relationText, weaknessesOf } from '../data/types.js';
@@ -128,7 +128,7 @@ export function createCombatView({ combat, onFinish }) {
 
     mount(activeSlot,
       el('div.unit-sprite', {}, [
-        el('img', { src: spriteUrl(m.species, sp, 6), alt: m.ko }),
+        monImg(m.species, sp, 6, { alt: m.ko }),
         el('div.unit-shadow'),
       ]),
       hudPlate(m.ko, m.types, m.hp, m.maxHp, { block: S.block, badges }),
@@ -151,7 +151,7 @@ export function createCombatView({ combat, onFinish }) {
         onmouseenter: () => { if (!m.fainted) { hoverBench = i; renderEnemies(); showSwitchHint(i); } },
         onmouseleave: () => { hoverBench = null; renderEnemies(); switchHint.classList.remove('is-on'); },
       }, [
-        el('img', { src: spriteUrl(m.species, sp, 3), alt: m.ko }),
+        monImg(m.species, sp, 3, { alt: m.ko }),
         hudPlate(m.ko + (m.fainted ? ' (기절)' : ''), null, m.hp, m.maxHp, { small: true }),
       ]);
       return node;
@@ -230,7 +230,7 @@ export function createCombatView({ combat, onFinish }) {
       }
 
       node.appendChild(el('div.unit-sprite', {}, [
-        el('img', { src: spriteUrl(e.id, e.def, Math.round(6 * (e.def.scale || 1))), alt: e.ko }),
+        monImg(e.id, e.def, Math.round(6 * (e.def.scale || 1)), { alt: e.ko }),
         el('div.unit-shadow'),
       ]));
       node.appendChild(hudPlate(e.ko, e.types, e.hp, e.maxHp, {

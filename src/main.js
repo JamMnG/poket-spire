@@ -16,7 +16,7 @@ import { COIN } from './ui/icons.js';
 import { STARTERS, POKEMON } from './data/pokemon.js';
 import { RELICS, availableRelics } from './data/relics.js';
 import { typeKo, typeColor } from './data/types.js';
-import { spriteUrl } from './render/pokemonSprites.js';
+import { monImg } from './render/pokemonSprites.js';
 import { randomSeed } from './core/rng.js';
 
 let run = null;
@@ -39,7 +39,7 @@ function renderTopbars() {
 
   for (const bar of document.querySelectorAll('[data-topbar]')) {
     mount(bar,
-      el('div.tb-portrait', {}, [el('img', { src: spriteUrl(lead.species, POKEMON[lead.species], 3), alt: lead.ko })]),
+      el('div.tb-portrait', {}, [monImg(lead.species, POKEMON[lead.species], 3, { alt: lead.ko })]),
       el('div.tb-name', { text: R.party.length > 1 ? `${lead.ko} 외 ${R.party.length - 1}` : lead.ko }),
       attachTip(el('div.tb-stat.tb-hp', {}, [
         el('span.ic', { text: '♥' }),
@@ -68,7 +68,7 @@ function renderTitle() {
     return el(`div.starter${id === starterPick ? '.is-sel' : ''}`, {
       onclick: () => { starterPick = id; renderTitle(); },
     }, [
-      el('img', { src: spriteUrl(id, sp, 5), alt: sp.ko }),
+      monImg(id, sp, 5, { alt: sp.ko }),
       el('div.s-name', { text: sp.ko }),
       typeBadges(sp.types),
       el('div.s-blurb', { text: sp.blurb }),

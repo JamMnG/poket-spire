@@ -12,7 +12,7 @@ import { RELICS } from '../data/relics.js';
 import { POKEMON } from '../data/pokemon.js';
 import { EVENTS } from '../data/events.js';
 import { typeKo, typeColor } from '../data/types.js';
-import { spriteUrl } from '../render/pokemonSprites.js';
+import { monImg } from '../render/pokemonSprites.js';
 import { itemUrl } from '../render/itemArt.js';
 import { COIN, CARDS_ICON } from './icons.js';
 
@@ -167,7 +167,7 @@ export function showParty(run) {
     title(`파티 · ${R.party.length}/${run.partySlots()}`),
     sub('선두만 공격을 받는다. 쓰러진 포켓몬의 전용 기술은 그 전투 동안 쓸 수 없다.'),
     el('div.party-panel', {}, R.party.map((m) => el('div.party-card', {}, [
-      el('img', { src: spriteUrl(m.species, POKEMON[m.species], 4), alt: m.ko }),
+      monImg(m.species, POKEMON[m.species], 4, { alt: m.ko }),
       el('div.p-name', { text: m.ko }),
       el('div.unit-types', { style: { justifyContent: 'center' } }, m.types.map((t) =>
         el('span.tbadge', { text: typeKo(t), style: { background: typeColor(t) } }))),
@@ -290,7 +290,7 @@ export function showEvent(run, eventId, onDone) {
   const data = ev.setup ? ev.setup(run.eventApi) : {};
 
   const art = data.species
-    ? el('img', { src: spriteUrl(data.species, POKEMON[data.species], 5), style: { imageRendering: 'pixelated', width: '120px' } })
+    ? monImg(data.species, POKEMON[data.species], 5, { style: { width: '120px' } })
     : null;
 
   open(
@@ -347,7 +347,7 @@ export function showResult(run, won, onRestart) {
       ? '비주기를 쓰러뜨렸다. 여기까지가 지금 만들어진 만큼이다.'
       : '파티가 전부 쓰러졌다.'),
     el('div.party-panel', {}, R.party.map((m) => el('div.party-card', {}, [
-      el('img', { src: spriteUrl(m.species, POKEMON[m.species], 4), alt: m.ko }),
+      monImg(m.species, POKEMON[m.species], 4, { alt: m.ko }),
       el('div.p-name', { text: m.ko }),
       el('div.reward-sub', { text: `HP ${m.hp}/${m.maxHp}` }),
     ]))),

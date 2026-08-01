@@ -50,6 +50,10 @@ html, body {
 }
 
 button { font-family: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+
+/* 아트워크를 못 받았을 때 도트로 떨어진 포켓몬 그림.
+   부드럽게 늘리면 뭉개지므로 픽셀 그대로 확대한다. */
+img.is-dot { image-rendering: pixelated; }
 button:disabled { cursor: not-allowed; }
 
 #app { position: relative; width: 100vw; height: 100vh; }
