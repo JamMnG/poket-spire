@@ -11,7 +11,7 @@ echo.
 rem ── git 이 있는지 ────────────────────────────────────────
 where git >nul 2>&1
 if errorlevel 1 (
-  echo   [!] git 이 설치되어 있지 않습니다.
+  echo   [X] git 이 설치되어 있지 않습니다.
   echo       https://git-scm.com/download/win 에서 받으세요.
   goto :end
 )
@@ -19,7 +19,7 @@ if errorlevel 1 (
 rem ── 이름·메일이 잡혀 있는지 (없으면 커밋이 실패한다) ─────
 for /f "delims=" %%i in ('git config user.name 2^>nul') do set "GITNAME=%%i"
 if "!GITNAME!"=="" (
-  echo   [!] git 사용자 정보가 없습니다. 이 두 줄을 먼저 실행하세요:
+  echo   [X] git 사용자 정보가 없습니다. 이 두 줄을 먼저 실행하세요:
   echo.
   echo       git config --global user.name "이름"
   echo       git config --global user.email "메일주소"
@@ -59,7 +59,7 @@ rem   커밋 기록에 영원히 남으므로, 올리기 전에 여기서 끊는다.
 set "ART="
 for /f "delims=" %%i in ('git diff --cached --name-only ^| findstr /i "src/assets/"') do set "ART=%%i"
 if not "!ART!"=="" (
-  echo   [!] 중단합니다. 그림 자산이 커밋에 들어가 있습니다:
+  echo   [X] 중단합니다. 그림 자산이 커밋에 들어가 있습니다:
   echo       !ART!
   echo.
   echo       이 저장소는 공개라 포켓몬 아트워크를 올리면 안 됩니다.
@@ -80,7 +80,7 @@ if "!MSG!"=="" (
 
 git commit -q -m "!MSG!"
 if errorlevel 1 (
-  echo   [!] 커밋에 실패했습니다.
+  echo   [X] 커밋에 실패했습니다.
   goto :end
 )
 for /f "delims=" %%i in ('git rev-parse --short HEAD') do set "SHA=%%i"
@@ -92,7 +92,7 @@ echo   푸시하는 중...
 git push -u origin main
 if errorlevel 1 (
   echo.
-  echo   [!] 푸시에 실패했습니다. 흔한 원인:
+  echo   [X] 푸시에 실패했습니다. 흔한 원인:
   echo       - 로그인 창이 떴다면 GitHub 계정으로 로그인해 주세요.
   echo       - 원격에 다른 커밋이 있으면 아래로 합친 뒤 다시 시도하세요:
   echo             git pull --rebase origin main
