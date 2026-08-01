@@ -795,6 +795,27 @@ button:disabled { cursor: not-allowed; }
 .result-win { color: var(--gold); text-shadow: 0 0 30px rgba(232,197,106,.4); }
 .result-lose { color: #c8564a; }
 
+/* ══ 필드에 깔린 것 (날씨·지속 효과) ═════════════════════════ */
+.field-bar {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(var(--topbar-h) + var(--relicbar-h) + 6px);
+  z-index: 6; display: none; gap: 8px;
+}
+.field-bar.is-on { display: flex; }
+.fld {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; letter-spacing: .5px;
+  background: rgba(12,9,6,.82); border: 1px solid #6b5333;
+  box-shadow: 0 3px 12px rgba(0,0,0,.5);
+}
+.fld-n { color: var(--gold); font-weight: 900; }
+.fld-sun       { border-color: #c8863a; }
+.fld-rain      { border-color: #4a8ad0; }
+.fld-sandstorm { border-color: #a09070; }
+.fld-aqua_ring { border-color: #5aa8dc; }
+.fld-ingrain   { border-color: #5f9a6a; }
+
 /* ══ 멀티 로비 ═══════════════════════════════════════════════ */
 #screen-lobby { overflow-y: auto; }
 .lobby-wrap {

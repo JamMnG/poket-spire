@@ -40,6 +40,7 @@ export function createCombatView({ combat, onFinish }) {
   const fxLayer     = $('#fx-layer');
   const logEl       = $('#combat-log');
   const switchHint  = $('#switch-hint');
+  const fieldEl     = $('#field-bar');
 
   let pickedCard = null;      // 대상을 고르는 중인 카드
   let hoverBench = null;      // 벤치에 올려 둔 손 — 의도 숫자를 이 기준으로 다시 센다
@@ -344,6 +345,32 @@ export function createCombatView({ combat, onFinish }) {
     mount(logEl, ...S.log.slice(-5).map((t) => el('div', { text: t })));
   }
 
+  // ── 필드에 깔린 것 (날씨·지속 효과) ───────────────────────
+  // ★ 이게 없어서 "비바라기가 안 쌓이는 것 같다"는 말을 들었다. 실제로는
+  //   겹쳐서 쌓이고 있었는데(4 → 8 → 12) 화면 어디에도 안 보였다. 지금
+  //   몇이 깔려 있는지가 안 보이면, 쌓였는지 아닌지 알 방법이 없다.
+  const FIELD = {
+    SUN:       { ko: '쾌청',     tip: (n) => `불꽃 기술의 위력이 <b>+${n}</b>.` },
+    RAIN:      { ko: '비바라기', tip: (n) => `물 기술의 위력이 <b>+${n}</b>.` },
+    SANDSTORM: { ko: '모래바람', tip: (n) => `라운드가 끝날 때 모든 적에게 <b>${n}</b>의 피해.` },
+    AQUA_RING: { ko: '아쿠아링', tip: (n) => `라운드가 끝날 때 HP를 <b>${n}</b> 회복.` },
+    INGRAIN:   { ko: '뿌리박기', tip: (n) => `라운드가 끝날 때 방어도 <b>${n}</b>.` },
+  };
+
+  function renderField() {
+    const on = Object.keys(FIELD).filter((k) => (S.powers[k] || 0) > 0);
+    fieldEl.classList.toggle('is-on', on.length > 0);
+    mount(fieldEl, ...on.map((k) => {
+      const n = S.powers[k];
+      const node = el(`div.fld.fld-${k.toLowerCase()}`, {}, [
+        el('span.fld-name', { text: FIELD[k].ko }),
+        el('span.fld-n', { text: `+${n}` }),
+      ]);
+      return attachTip(node, `<div class="tt-name">${FIELD[k].ko}</div>${FIELD[k].tip(n)}`
+        + '<div class="tt-sec">겹쳐 쓰면 그만큼 더 쌓인다. 전투가 끝나면 사라진다.</div>');
+    }));
+  }
+
   // ── 카드 연출 ────────────────────────────────────────────
 
   /** 쓴 카드가 손에서 떠올라 대상 쪽으로 날아간다 */
@@ -483,6 +510,7 @@ export function createCombatView({ combat, onFinish }) {
     renderHand();
     renderBar();
     renderLog();
+    renderField();
   });
 
   // ── 배선 ─────────────────────────────────────────────────

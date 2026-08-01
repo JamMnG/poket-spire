@@ -472,6 +472,17 @@ const SHAPE = {
 // ── 기술 → 형태 ──────────────────────────────────────────────
 // 여기 없는 카드는 아래 타입 기본값으로 떨어진다.
 const MOVE_ART = {
+  // ── 스타터 3계열 전용 카드 ──
+  // 없는 id 는 타입 기본 모양으로 떨어지는데(544줄), 그러면 새 카드 스무 장이
+  // 전부 같은 그림이 된다. "기술마다 그림이 다르다"가 이 게임 카드의 규칙이라
+  // 새로 넣을 때마다 여기도 같이 채운다.
+  emberfang: 'jaws', dragonrage: 'burst', wingattack: 'multi', dragondance: 'boost',
+  smokescreen: 'ghost', overheat: 'charge', blastburn: 'quake',
+  bubble: 'drip', rapidspin: 'whirl', skullbash: 'press', aquatail: 'tail',
+  shellarmor: 'shell', irondefensecard: 'stockpile', hydrocannon: 'drench',
+  stunspore: 'powder', sleeppowder: 'moon', growth: 'root', petaldance: 'whirl',
+  toxicvine: 'web', solarbeam: 'beam', frenzyplant: 'rockfall',
+
   // 때리기
   tackle: 'impact', scratch: 'claw', metalclaw: 'claw', nightslash: 'slash', airslash: 'slash',
   quickattack: 'dash', aquajet: 'dash', volttackle: 'dash', nitrocharge: 'boost', flamewheel: 'wheel',

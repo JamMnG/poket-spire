@@ -77,7 +77,7 @@ export const CARDS = {
     ko: '씨뿌리기', type: 'GRASS', kind: A, rarity: B, target: 'ENEMY',
     // 독 5 는 5+4+3+2+1 = 15 를 타입과 무관하게 뽑는다. 풀·독은 이 게임
     //   적 구성 상대로 자속 배율이 제일 나쁘므로, 이상해씨의 딜은 여기서 온다
-    v: { cost: 1, dmg: 4, psn: 5 }, vUp: { dmg: 6, psn: 7 },
+    v: { cost: 1, dmg: 4, psn: 6 }, vUp: { dmg: 6, psn: 8 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'POISON', amount: v.psn }],
     text: (v) => `${v.dmg}의 피해. 독 ${v.psn}.`,
   },
@@ -117,7 +117,7 @@ export const CARDS = {
   },
   absorb: {
     ko: '흡수', type: 'GRASS', kind: A, rarity: B, target: 'ENEMY',
-    v: { cost: 1, dmg: 7, ratio: 1 }, vUp: { dmg: 10, ratio: 1 },
+    v: { cost: 1, dmg: 8, ratio: 1 }, vUp: { dmg: 11, ratio: 1 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'drain', ratio: v.ratio }],
     text: (v) => `${v.dmg}의 피해. 준 피해만큼 HP를 회복한다.`,
   },
@@ -311,7 +311,7 @@ export const CARDS = {
     ko: '쾌청', type: 'FIRE', kind: P, rarity: R, target: 'SELF',
     v: { cost: 1, add: 4 }, vUp: { add: 6 },
     build: (v) => [{ op: 'power', id: 'SUN', amount: v.add }],
-    text: (v) => `전투가 끝날 때까지 불꽃 기술의 위력이 ${v.add} 오른다.`,
+    text: (v) => `이 전투 동안 불꽃 기술의 위력이 ${v.add} 오른다. 겹쳐 쓰면 그만큼 더 쌓인다.`,
   },
 
   // ── 물 ───────────────────────────────────────────────────
@@ -331,13 +331,13 @@ export const CARDS = {
     ko: '아쿠아링', type: 'WATER', kind: P, rarity: U, target: 'SELF',
     v: { cost: 1, heal: 4 }, vUp: { heal: 6 },
     build: (v) => [{ op: 'power', id: 'AQUA_RING', amount: v.heal }],
-    text: (v) => `턴이 끝날 때마다 HP를 ${v.heal} 회복한다.`,
+    text: (v) => `이 전투 동안, 라운드가 끝날 때마다 HP를 ${v.heal} 회복한다. 겹쳐 쌓인다.`,
   },
   raindance: {
     ko: '비바라기', type: 'WATER', kind: P, rarity: R, target: 'SELF',
     v: { cost: 1, add: 4 }, vUp: { add: 6 },
     build: (v) => [{ op: 'power', id: 'RAIN', amount: v.add }],
-    text: (v) => `전투가 끝날 때까지 물 기술의 위력이 ${v.add} 오른다.`,
+    text: (v) => `이 전투 동안 물 기술의 위력이 ${v.add} 오른다. 겹쳐 쓰면 그만큼 더 쌓인다.`,
   },
   hydropump: {
     ko: '하이드로펌프', type: 'WATER', kind: A, rarity: R, target: 'ENEMY',
@@ -561,7 +561,7 @@ export const CARDS = {
     ko: '모래바람', type: 'ROCK', kind: P, rarity: R, target: 'SELF',
     v: { cost: 2, dmg: 3 }, vUp: { dmg: 5 },
     build: (v) => [{ op: 'power', id: 'SANDSTORM', amount: v.dmg }],
-    text: (v) => `턴이 끝날 때마다 모든 적에게 ${v.dmg}의 피해를 준다.`,
+    text: (v) => `이 전투 동안, 라운드가 끝날 때마다 모든 적에게 ${v.dmg}의 피해. 겹쳐 쌓인다.`,
   },
 
   // ══ 상황에 값이 달라지는 카드 ═══════════════════════════════
@@ -625,7 +625,7 @@ export const CARDS = {
     ko: '뿌리박기', type: 'GRASS', kind: P, rarity: U, target: 'SELF',
     v: { cost: 1, blk: 5 }, vUp: { blk: 7 },
     build: (v) => [{ op: 'power', id: 'INGRAIN', amount: v.blk }],
-    text: (v) => `턴이 끝날 때마다 방어도 ${v.blk}를 얻는다.`,
+    text: (v) => `이 전투 동안, 라운드가 끝날 때마다 방어도 ${v.blk}. 겹쳐 쌓인다.`,
   },
 
   // ══ 값싸고 흔한 카드 — 덱을 굴리는 살 ═══════════════════════
@@ -718,6 +718,189 @@ export const CARDS = {
     v: { cost: 2, dmg: 15 }, vUp: { dmg: 20 },
     build: (v) => [{ op: 'damage', power: v.dmg }],
     text: (v) => `${v.dmg}의 피해를 준다.`,
+  },
+
+  // ══ 스타터 3계열 전용 카드 ═══════════════════════════════
+  // 파이리·꼬부기·이상해씨와 그 진화형(리자몽·거북왕·이상해꽃)이 원작에서
+  // 쓰는 기술들이다. 각 계열의 정체성을 한 방향으로 더 밀어 준다:
+  //
+  //   불꽃 — 화상을 쌓고 그 화상으로 때린다 (타입표를 안 타는 딜)
+  //   물   — 방어도를 쌓고 그 방어도로 때린다
+  //   풀   — 독을 얹고 빨아먹으며 길게 간다
+  //
+  // 보상 풀은 파티 타입으로 걸러지므로(run.js rewardPool), 파이리를 골랐다면
+  // 불꽃 카드가 실제로 자주 보인다. 계열마다 커먼 2 · 언커먼 3 · 레어 2 로
+  // 나눠 두어 초반에도 뽑히고, 후반에 판을 뒤집을 것도 남게 했다.
+
+  // ── 파이리 → 리자드 → 리자몽 ────────────────────────────
+  emberfang: {
+    ko: '불꽃엄니', type: 'FIRE', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 8, burn: 3 }, vUp: { dmg: 11, burn: 4 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'BURN', amount: v.burn }],
+    text: (v) => `${v.dmg}의 피해. 화상 ${v.burn}.`,
+  },
+  dragonrage: {
+    ko: '용의분노', type: 'DRAGON', kind: A, rarity: C, target: 'ENEMY',
+    // 고정 피해라 상성·자속·랭크를 전부 무시한다. 불꽃이 안 통하는 상대
+    // (물·바위 계열)를 만났을 때 파이리가 쥘 수 있는 답이다.
+    v: { cost: 1, dmg: 12 }, vUp: { dmg: 18 },
+    build: (v) => [{ op: 'fixed', amount: v.dmg }],
+    text: (v) => `상성과 랭크를 무시하고 ${v.dmg}의 피해를 준다.`,
+  },
+  wingattack: {
+    ko: '날개치기', type: 'FLYING', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 1, dmg: 9, draw: 1 }, vUp: { dmg: 12, draw: 1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'draw', amount: v.draw }],
+    text: (v) => `${v.dmg}의 피해. 카드를 ${v.draw}장 뽑는다.`,
+  },
+  dragondance: {
+    ko: '용의춤', type: null, kind: S, rarity: U, target: 'SELF',
+    v: { cost: 1, atk: 1, energy: 1 }, vUp: { atk: 2, energy: 1 },
+    build: (v) => [
+      { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' },
+      { op: 'energyNextTurn', amount: v.energy },
+    ],
+    text: (v) => `공격 랭크 +${v.atk}. 다음 턴에 에너지를 ${v.energy} 더 얻는다.`,
+  },
+  smokescreen: {
+    ko: '연막', type: null, kind: S, rarity: U, target: 'ENEMY',
+    v: { cost: 0, blk: 5, down: 1 }, vUp: { blk: 8, down: 1 },
+    build: (v) => [
+      { op: 'block', amount: v.blk },
+      { op: 'rank', stat: 'ATK', delta: -v.down, to: 'enemy' },
+    ],
+    text: (v) => `방어도 ${v.blk}. 상대의 공격 랭크 -${v.down}.`,
+  },
+  overheat: {
+    ko: '오버히트', type: 'FIRE', kind: A, rarity: R, target: 'ENEMY',
+    // 원작처럼 쓰고 나면 특공이 떨어진다 — 마무리로 쓰라는 한 방
+    v: { cost: 2, dmg: 26, back: 2 }, vUp: { dmg: 34, back: 2 },
+    build: (v) => [
+      { op: 'damage', power: v.dmg },
+      { op: 'rank', stat: 'ATK', delta: -v.back, to: 'self' },
+    ],
+    text: (v) => `${v.dmg}의 피해. 내 공격 랭크가 ${v.back} 내려간다.`,
+  },
+  blastburn: {
+    ko: '블러스트번', type: 'FIRE', kind: A, rarity: R, target: 'ALL',
+    v: { cost: 3, dmg: 16, burn: 5 }, vUp: { dmg: 21, burn: 7 },
+    build: (v) => [
+      { op: 'damageAll', power: v.dmg },
+      { op: 'statusAll', status: 'BURN', amount: v.burn },
+    ],
+    text: (v) => `모든 적에게 ${v.dmg}의 피해. 화상 ${v.burn}.`,
+  },
+
+  // ── 꼬부기 → 어니부기 → 거북왕 ──────────────────────────
+  bubble: {
+    ko: '거품', type: 'WATER', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 0, dmg: 5, para: 1 }, vUp: { dmg: 8, para: 1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'PARA', amount: v.para }],
+    text: (v) => `${v.dmg}의 피해. 마비 ${v.para}.`,
+  },
+  rapidspin: {
+    ko: '고속스핀', type: 'NORMAL', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 6, blk: 5 }, vUp: { dmg: 9, blk: 7 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'block', amount: v.blk }],
+    text: (v) => `${v.dmg}의 피해. 방어도 ${v.blk}.`,
+  },
+  skullbash: {
+    ko: '로케트박치기', type: 'NORMAL', kind: A, rarity: U, target: 'ENEMY',
+    // 원작에서 한 턴 웅크렸다가 친다 — 여기서는 "먼저 쌓아 둔 방어도"가 그 값이다
+    v: { cost: 2, base: 6, mult: 1, def: 1 }, vUp: { base: 10, mult: 1, def: 1 },
+    build: (v) => [
+      { op: 'damageScaled', base: v.base, per: 'BLOCK', mult: v.mult },
+      { op: 'rank', stat: 'DEF', delta: v.def, to: 'self' },
+    ],
+    text: (v) => `${v.base}의 피해. 지금 방어도만큼 더 준다. 방어 랭크 +${v.def}.`,
+  },
+  aquatail: {
+    ko: '아쿠아테일', type: 'WATER', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 18 }, vUp: { dmg: 24 },
+    build: (v) => [{ op: 'damage', power: v.dmg }],
+    text: (v) => `${v.dmg}의 피해를 준다.`,
+  },
+  shellarmor: {
+    ko: '조가비갑옷', type: null, kind: P, rarity: U, target: 'SELF',
+    // 꼬부기에게 "안 쓰고 남긴 방어도"의 값을 만들어 준다
+    v: { cost: 1, blk: 4 }, vUp: { blk: 6 },
+    build: (v) => [{ op: 'power', id: 'INGRAIN', amount: v.blk }],
+    text: (v) => `이 전투 동안, 턴이 끝날 때마다 방어도 ${v.blk}를 얻는다.`,
+  },
+  irondefensecard: {
+    ko: '껍질닫기', type: null, kind: S, rarity: R, target: 'SELF',
+    v: { cost: 1, blk: 14, def: 1, draw: 1 }, vUp: { blk: 19, def: 2, draw: 1 },
+    build: (v) => [
+      { op: 'block', amount: v.blk },
+      { op: 'rank', stat: 'DEF', delta: v.def, to: 'self' },
+      { op: 'draw', amount: v.draw },
+    ],
+    text: (v) => `방어도 ${v.blk}. 방어 랭크 +${v.def}. 카드를 ${v.draw}장 뽑는다.`,
+  },
+  hydrocannon: {
+    ko: '하이드로캐논', type: 'WATER', kind: A, rarity: R, target: 'ENEMY',
+    // 껍질치기의 큰형. 쌓아 둔 방어도를 통째로 쏟아붓는다
+    v: { cost: 3, base: 10, mult: 2 }, vUp: { base: 16, mult: 2 },
+    build: (v) => [
+      { op: 'damageScaled', base: v.base, per: 'BLOCK', mult: v.mult },
+      { op: 'loseBlockRatio', ratio: 1 },
+    ],
+    text: (v) => `${v.base}의 피해. 지금 방어도 1당 ${v.mult}씩 늘어난다. 방어도를 전부 잃는다.`,
+  },
+
+  // ── 이상해씨 → 이상해풀 → 이상해꽃 ──────────────────────
+  stunspore: {
+    ko: '마비가루', type: 'GRASS', kind: S, rarity: C, target: 'ENEMY',
+    v: { cost: 0, para: 2 }, vUp: { para: 3 },
+    build: (v) => [{ op: 'status', status: 'PARA', amount: v.para }],
+    text: (v) => `마비 ${v.para}. 상대의 공격이 25% 약해진다.`,
+  },
+  sleeppowder: {
+    ko: '수면가루', type: 'GRASS', kind: S, rarity: C, target: 'ENEMY',
+    v: { cost: 1, freeze: 1 }, vUp: { freeze: 2 },
+    build: (v) => [{ op: 'status', status: 'FREEZE', amount: v.freeze }],
+    text: (v) => `${v.freeze}턴 동안 상대가 행동하지 못한다.`,
+  },
+  growth: {
+    ko: '성장', type: null, kind: S, rarity: U, target: 'SELF',
+    v: { cost: 0, atk: 1, draw: 1 }, vUp: { atk: 1, draw: 2 },
+    build: (v) => [
+      { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' },
+      { op: 'draw', amount: v.draw },
+    ],
+    text: (v) => `공격 랭크 +${v.atk}. 카드를 ${v.draw}장 뽑는다.`,
+  },
+  petaldance: {
+    ko: '꽃잎댄스', type: 'GRASS', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 6, hits: 3 }, vUp: { dmg: 8, hits: 3 },
+    build: (v) => [{ op: 'damage', power: v.dmg, hits: v.hits }],
+    text: (v) => `${v.dmg}의 피해를 ${v.hits}번 준다.`,
+  },
+  toxicvine: {
+    ko: '독덩굴', type: 'POISON', kind: A, rarity: U, target: 'ENEMY',
+    // 독 피해는 타입표를 안 탄다 — 풀/독의 나쁜 상성을 메우는 축이다
+    v: { cost: 1, dmg: 5, psn: 6, drain: 1 }, vUp: { dmg: 7, psn: 8, drain: 1 },
+    build: (v) => [
+      { op: 'damage', power: v.dmg },
+      { op: 'status', status: 'POISON', amount: v.psn },
+      { op: 'drain', ratio: v.drain },
+    ],
+    text: (v) => `${v.dmg}의 피해. 독 ${v.psn}. 준 피해만큼 HP를 회복한다.`,
+  },
+  solarbeam: {
+    ko: '솔라빔', type: 'GRASS', kind: A, rarity: R, target: 'ENEMY',
+    v: { cost: 2, dmg: 25 }, vUp: { dmg: 33 },
+    build: (v) => [{ op: 'damage', power: v.dmg }],
+    text: (v) => `${v.dmg}의 피해를 준다.`,
+  },
+  frenzyplant: {
+    ko: '하드플랜트', type: 'GRASS', kind: A, rarity: R, target: 'ALL',
+    v: { cost: 3, dmg: 14, psn: 7 }, vUp: { dmg: 19, psn: 10 },
+    build: (v) => [
+      { op: 'damageAll', power: v.dmg },
+      { op: 'statusAll', status: 'POISON', amount: v.psn },
+    ],
+    text: (v) => `모든 적에게 ${v.dmg}의 피해. 독 ${v.psn}.`,
   },
 };
 

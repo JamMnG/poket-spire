@@ -57,6 +57,16 @@ function apply() {
   const vw = window.innerWidth - ins.l - ins.r;
   const vh = window.innerHeight - ins.t - ins.b;
 
+  // ★ 아직 화면 크기를 모를 때가 있다. 모듈이 평가되는 시점에 브라우저가
+  //   레이아웃을 안 잡았으면 innerWidth/innerHeight 가 0 으로 나오는데,
+  //   그대로 계산하면 0/0 = NaN 이 --stage-w 에 들어가 판이 폭 0 으로
+  //   찌그러진다. 실제로 첫 화면이 그렇게 떴다(다음 resize 에 저절로
+  //   고쳐져서 더 헷갈렸다). 크기를 알게 될 때까지 미룬다.
+  if (!(vw > 0) || !(vh > 0)) {
+    requestAnimationFrame(apply);
+    return;
+  }
+
   body.classList.toggle('is-portrait', tooTall());
 
   if (fitsNatively(vw, vh)) {
@@ -83,6 +93,8 @@ function apply() {
 
 export function initStage() {
   apply();
+  // 폰트·이미지가 늦게 들어오면서 크기가 바뀌는 경우가 있어 한 번 더 잰다
+  window.addEventListener('load', apply);
   window.addEventListener('resize', apply);
   // 기기를 돌리면 resize 가 늦게 오거나 옛 크기로 온다 — 한 박자 뒤 다시 잰다
   window.addEventListener('orientationchange', () => setTimeout(apply, 250));

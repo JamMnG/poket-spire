@@ -53,13 +53,18 @@ export const POKEMON = {
     style: '버티며 되받아친다',
   },
   bulbasaur: {
-    id: 'bulbasaur', ko: '이상해씨', types: ['GRASS', 'POISON'], hp: 60,
+    id: 'bulbasaur', ko: '이상해씨', types: ['GRASS', 'POISON'], hp: 66,
     body: '#63bc7a', accent: '#4f9e52', belly: '#bfe0a8',
     starter: true,
-    signatures: ['leechseed', 'absorb'],      // 독을 얹고 → 빨아먹으며 버틴다
-    cards: ['leechseed', 'vinewhip'],
-    blurb: '등의 씨앗이 자란다. 독을 얹고 빨아먹으며 시간을 번다.',
-    style: '독과 흡수로 길게 간다',
+    // ★ 원래는 씨뿌리기 + 흡수였는데, 그러면 파이리(화상을 쌓고 → 화상으로
+    //   때린다)·꼬부기(방어도를 쌓고 → 방어도로 때린다)와 달리 **거두는 카드가
+    //   없었다**. 풀/독은 자속 배율이 제일 나빠서(3막 0.83) 그냥 때리는 걸로는
+    //   따라갈 수가 없다. 벤오샥으로 바꿔 "독을 쌓고 → 독만큼 때린다"를 만들었다 —
+    //   독 피해는 타입표를 안 타므로 나쁜 상성을 정면으로 메운다.
+    signatures: ['leechseed', 'venoshock'],
+    cards: ['leechseed', 'absorb'],
+    blurb: '등의 씨앗이 자란다. 독을 쌓을수록 한 방이 커진다.',
+    style: '독을 쌓아 터뜨린다',
   },
 
   // ── 야생에서 합류하는 종 ──────────────────────────────────
