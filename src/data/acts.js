@@ -31,8 +31,8 @@ export const ACTS = [
     name: '상록의 숲',
     blurb: '풀숲에서 부스럭거리는 것들.',
     floors: 15,
-    hpMul: 1.00, hpRamp: 0.88,
-    dmgMul: 0.92, dmgRamp: 0.56,
+    hpMul: 1.02, hpRamp: 0.93,
+    dmgMul: 0.94, dmgRamp: 0.59,
     // 이 막에서 야생으로 만나 잡을 수 있는 종
     catchable: ['pikachu', 'rattata', 'pidgey', 'sandshrew', 'zubat', 'caterpie', 'vulpix'],
     weak:   [['rattata'], ['pidgey'], ['caterpie', 'weedle'], ['rattata', 'rattata']],
@@ -49,8 +49,8 @@ export const ACTS = [
     name: '달의 신전',
     blurb: '월장석이 박힌 동굴. 빛이 닿지 않는 곳에서 무언가 웃는다.',
     floors: 16,
-    hpMul: 1.15, hpRamp: 0.58,
-    dmgMul: 1.05, dmgRamp: 0.40,
+    hpMul: 1.20, hpRamp: 0.61,
+    dmgMul: 1.09, dmgRamp: 0.42,
     catchable: ['geodude', 'machop', 'abra', 'gastly', 'poliwag', 'magnemite'],
     weak:   [['diglett', 'diglett'], ['paras'], ['zubat', 'zubat']],
     normal: [
@@ -67,8 +67,8 @@ export const ACTS = [
     name: '첨탑',
     blurb: '끝까지 오른 자만 만나는 것들이 기다린다.',
     floors: 17,
-    hpMul: 1.50, hpRamp: 0.62,
-    dmgMul: 1.32, dmgRamp: 0.48,
+    hpMul: 1.57, hpRamp: 0.65,
+    dmgMul: 1.36, dmgRamp: 0.50,
     // 3막 전용 5종 — 여기까지 온 값이다
     catchable: ['scyther', 'pinsir', 'electabuzz', 'magmar', 'jynx'],
     weak:   [['electabuzz'], ['magmar'], ['jynx']],
@@ -109,11 +109,14 @@ export const ACT_CLEAR_REWARD = {
  */
 export const PLAYER_SCALE = {
   1: { hp: 1,    dmg: 1    },
-  2: { hp: 2.45, dmg: 1.72 },
-  3: { hp: 3.95, dmg: 2.30 },
+  2: { hp: 2.35, dmg: 1.64 },
+  3: { hp: 3.75, dmg: 2.15 },
 };
 // tools/balance.js 로 재서 맞췄다 (measureMulti):
-//   1인 봇 승률 15~19% · 2인 13% · 3인 13%
+//   1인 봇 승률 10% · 2인 7~13% · 3인 13%
+// "매우 어렵게" 패치에서 막 배율을 올린 만큼 여기는 살짝 내렸다 — 이 값은
+// 막 배율 **위에** 곱해지므로, 기본이 오르면 여기를 그대로 두기만 해도
+// 멀티가 같이 세진다. 그대로 뒀더니 2·3인이 0% 로 떨어졌다.
 // 사람 수가 늘수록 조금씩 더 어렵되, 죽는 자리가 아홉 종류 방에 고르게
 // 흩어지도록 맞췄다 — 한 군데가 벽이면 "어렵다"가 아니라 "막혔다"가 된다.
 //
