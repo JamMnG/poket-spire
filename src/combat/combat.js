@@ -756,9 +756,74 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     startPlayerTurn();
   }
 
+  // ── 저장·복원 ────────────────────────────────────────────
+  // 전투 중에 페이지를 닫아도 이어서 하게 하려면 S 를 통째로 적어 둬야 한다.
+  // 두 군데만 그냥 넣으면 안 된다:
+  //   · 카드는 run 의 덱과 **같은 객체**를 공유한다. uid 만 적고 복원할 때
+  //     덱에서 다시 찾아 잇는다. 복사해 두면 전투 중 강화가 덱에 안 남는다.
+  //   · 적의 def 는 enemies.js 표를 가리키는 참조다. id 만 적는다.
+  const cardUids = (pile) => pile.map((c) => c.uid);
+
+  function snapshot() {
+    return {
+      turn: S.turn, phase: S.phase, energy: S.energy, maxEnergy: S.maxEnergy,
+      active: S.active, block: S.block, ranks: { ...S.ranks },
+      enemies: S.enemies.map((e) => ({
+        uid: e.uid, slot: e.slot, id: e.id, hp: e.hp, maxHp: e.maxHp,
+        block: e.block, ranks: { ...e.ranks }, status: { ...e.status },
+        turn: e.turn, history: e.history.slice(), intent: e.intent, dead: e.dead,
+      })),
+      drawPile: cardUids(S.drawPile), hand: cardUids(S.hand),
+      discardPile: cardUids(S.discardPile), exhaustPile: cardUids(S.exhaustPile),
+      switchedThisTurn: S.switchedThisTurn,
+      cardsThisTurn: S.cardsThisTurn, attacksThisTurn: S.attacksThisTurn,
+      nextMult: S.nextMult, bonusEnergyNext: S.bonusEnergyNext,
+      powers: { ...S.powers }, enduresLeft: S.enduresLeft,
+      log: S.log.slice(-12),
+      rng: rng.getState(),
+    };
+  }
+
+  /** begin() 대신 부른다 — 적었던 자리에서 그대로 이어 붙인다 */
+  function resume(snap) {
+    const byUid = new Map(deckCards.map((c) => [c.uid, c]));
+    const pile = (uids) => (uids || []).map((u) => byUid.get(u)).filter(Boolean);
+
+    Object.assign(S, {
+      turn: snap.turn, phase: snap.phase, energy: snap.energy, maxEnergy: snap.maxEnergy,
+      active: snap.active, block: snap.block, ranks: { ...snap.ranks },
+      drawPile: pile(snap.drawPile), hand: pile(snap.hand),
+      discardPile: pile(snap.discardPile), exhaustPile: pile(snap.exhaustPile),
+      switchedThisTurn: snap.switchedThisTurn,
+      cardsThisTurn: snap.cardsThisTurn, attacksThisTurn: snap.attacksThisTurn,
+      nextMult: snap.nextMult, bonusEnergyNext: snap.bonusEnergyNext,
+      powers: { ...snap.powers }, enduresLeft: snap.enduresLeft,
+      log: snap.log ? snap.log.slice() : [],
+      busy: false,
+    });
+
+    S.enemies = snap.enemies.map((e) => {
+      const def = enemyOf(e.id);
+      return {
+        uid: e.uid, slot: e.slot, id: e.id, ko: def.ko, def,
+        types: def.types.slice(),
+        hp: e.hp, maxHp: e.maxHp, block: e.block,
+        ranks: { ...e.ranks }, status: { ...e.status },
+        turn: e.turn, history: e.history.slice(), intent: e.intent, dead: e.dead,
+      };
+    });
+    // 적 uid 카운터가 뒤로 가 있으면 다음 전투에서 uid 가 겹친다
+    for (const e of S.enemies) if (e.uid > enemyUid) enemyUid = e.uid;
+
+    rng.setState(snap.rng);
+    notify();
+  }
+
   return {
     state: S,
     begin,
+    resume,
+    snapshot,
     playCard,
     switchTo,
     canSwitch,

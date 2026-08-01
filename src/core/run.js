@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────
 import { createStreams, randomSeed } from './rng.js';
 import { POKEMON, createMember } from '../data/pokemon.js';
-import { CARDS, POOL_IDS, makeCard } from '../data/cards.js';
+import { CARDS, POOL_IDS, makeCard, reviveCard } from '../data/cards.js';
 import { RELICS, availableRelics, sumField } from '../data/relics.js';
 import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD } from '../data/acts.js';
 import { generateMap, reachableFrom } from '../data/mapGen.js';
@@ -20,11 +20,14 @@ import { pickEvent } from '../data/events.js';
 export const BASE_PARTY_SLOTS = 3;
 export const STARTING_GOLD = 99;
 
-export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}) {
+export function createRun({ seed = randomSeed(), starterId = 'charmander', saved = null } = {}) {
+  // 이어하기면 적어 둔 시드로 되살린다 — 시드가 다르면 지도부터 딴 판이 된다
+  if (saved) { seed = saved.seed; starterId = saved.starter || starterId; }
   const streams = createStreams(seed);
 
   const R = {
     seed,
+    starter: starterId,
     streams,
     act: 1,
     party: [ createMember(starterId) ],
@@ -39,6 +42,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
     usedEncounters: [],
     request: null,          // UI에 무언가를 띄워 달라는 신호
     lastRoom: null,
+    lastCombatRoom: null,   // 전투 중 저장했을 때 어떤 방이었는지
     won: false,
     dead: false,
   };
@@ -51,6 +55,31 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
   for (let i = 0; i < 4; i++) R.deck.push(makeCard('tackle'));
   for (let i = 0; i < 4; i++) R.deck.push(makeCard('defend'));
   for (const id of sp.signatures) R.deck.push(makeCard(id, { owner: starterId }));
+
+  // ── 저장에서 되살리기 ─────────────────────────────────────
+  // 위에서 만든 기본값을 통째로 덮어쓴다. 지도를 다시 만들지 않고 적어 둔
+  // 것을 그대로 쓰는 게 중요하다 — 같은 시드라도 스트림을 몇 번 굴렸느냐에
+  // 따라 다음 지도가 달라지기 때문이다.
+  if (saved) {
+    R.act = saved.act;
+    R.party = saved.party.map((m) => {
+      const mem = createMember(m.species);
+      mem.hp = m.hp; mem.maxHp = m.maxHp; mem.fainted = !!m.fainted;
+      mem.status = { ...mem.status, ...(m.status || {}) };
+      return mem;
+    });
+    R.deck = saved.deck.map(reviveCard);
+    R.relics = saved.relics.slice();
+    R.gold = saved.gold;
+    R.map = saved.map;
+    R.currentNode = saved.currentNode;
+    R.visitedFloors = saved.visitedFloors;
+    R.eventsSeen = (saved.eventsSeen || []).slice();
+    R.weakUsed = saved.weakUsed || 0;
+    R.usedEncounters = (saved.usedEncounters || []).slice();
+    R.lastRoom = saved.lastRoom;
+    streams.setState(saved.rng);
+  }
 
   // ── 파티 ─────────────────────────────────────────────────
   const partySlots = () => BASE_PARTY_SLOTS + (R.relics.some((id) => RELICS[id]?.extraPartySlot) ? 1 : 0);

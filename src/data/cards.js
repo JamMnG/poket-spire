@@ -735,6 +735,17 @@ export function makeCard(id, opts = {}) {
 }
 
 /**
+ * 저장을 불러올 때 uid 를 그대로 살린다.
+ * uid 는 전투 더미가 덱의 어느 카드를 가리키는지 잇는 유일한 열쇠라, 새로
+ * 매기면 이어했을 때 손패가 통째로 사라진다. 카운터도 같이 밀어 두지 않으면
+ * 다음에 얻는 카드가 이미 있는 uid 를 받는다.
+ */
+export function reviveCard(saved) {
+  if (saved.uid > uidSeq) uidSeq = saved.uid;
+  return { uid: saved.uid, id: saved.id, upgraded: !!saved.upgraded, owner: saved.owner ?? null };
+}
+
+/**
  * 개체 → 화면·전투가 쓰는 완성된 카드.
  * 값(v)은 강화 여부에 따라 합쳐지고, 효과와 설명은 그 값에서 나온다.
  */

@@ -10,16 +10,25 @@
 // 디버깅할 때 "맵은 그대로 두고 전투만 다시" 가 불가능해진다.
 // ─────────────────────────────────────────────────────────────
 
-/** mulberry32 — 32비트 시드 하나로 도는 짧고 품질 괜찮은 PRNG */
+/**
+ * mulberry32 — 32비트 시드 하나로 도는 짧고 품질 괜찮은 PRNG.
+ *
+ * 상태가 정수 하나뿐이라 그 값만 적어 두면 나중에 정확히 이어서 굴릴 수
+ * 있다. 저장·이어하기(core/save.js)와 멀티(net/)가 이걸 쓴다 — 이어했을 때
+ * 다음 보상이 달라지면 저장 지점 직전으로 돌아가 다시 굴리는 짓이 가능해진다.
+ */
 function mulberry32(seed) {
   let a = seed >>> 0;
-  return function () {
+  const next = function () {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  next.getState = () => a;
+  next.setState = (v) => { a = v >>> 0; };
+  return next;
 }
 
 /** 문자열 시드 → 32비트 정수 */
@@ -78,6 +87,10 @@ export function createRng(seed) {
       }
       return items[items.length - 1];
     },
+
+    /** 지금까지 몇 번 굴렸는지까지 포함한 상태 — 숫자 하나면 된다 */
+    getState: () => next.getState(),
+    setState: (v) => next.setState(v),
   };
   return R;
 }
@@ -86,15 +99,23 @@ export function createRng(seed) {
  * 런 하나가 쓰는 난수 스트림 묶음.
  * 시드 문자열에 용도를 덧붙여 서로 독립적인 스트림을 만든다.
  */
+export const STREAM_IDS = ['map', 'reward', 'shop', 'event', 'combat'];
+
 export function createStreams(seed) {
-  return {
-    seed,
-    map: createRng(seed + ':map'),
-    reward: createRng(seed + ':reward'),
-    shop: createRng(seed + ':shop'),
-    event: createRng(seed + ':event'),
-    combat: createRng(seed + ':combat'),
+  const s = { seed };
+  for (const id of STREAM_IDS) s[id] = createRng(`${seed}:${id}`);
+
+  /** 다섯 스트림의 상태를 한 덩이로 — 저장할 때 쓴다 */
+  s.getState = () => {
+    const out = {};
+    for (const id of STREAM_IDS) out[id] = s[id].getState();
+    return out;
   };
+  s.setState = (st) => {
+    if (!st) return;
+    for (const id of STREAM_IDS) if (typeof st[id] === 'number') s[id].setState(st[id]);
+  };
+  return s;
 }
 
 /** 사람이 읽고 옮겨 적을 수 있는 시드 — 대문자·숫자 8자리 */

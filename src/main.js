@@ -19,6 +19,7 @@ import { typeKo, typeColor } from './data/types.js';
 import { monImg } from './render/pokemonSprites.js';
 import { randomSeed } from './core/rng.js';
 import { initStage } from './ui/stage.js';
+import * as SAVE from './core/save.js';
 
 initStage();
 
@@ -81,6 +82,14 @@ function renderTitle() {
     ]);
   }));
   $('#btn-start').disabled = !starterPick;
+
+  // 적어 둔 판이 있으면 이어하기를 위에 띄운다. 새로 시작하는 길은 그대로
+  // 아래에 남겨 둔다 — "이어할까 새로 할까"는 플레이어가 정할 일이다.
+  const data = SAVE.peek();
+  const row = $('#resume-row');
+  row.hidden = !data;
+  if (data) $('#resume-info').textContent = SAVE.describe(data);
+  $('#btn-start').textContent = data ? '새로 시작한다' : '모험을 시작한다';
 }
 
 // 시그니처 카드 이름만 필요해서 데이터 표를 직접 읽는다
@@ -90,14 +99,44 @@ const CARD_KO = (id) => CARDS[id]?.ko ?? id;
 // ── 런 시작 ─────────────────────────────────────────────────
 function startRun() {
   const typed = $('#seed-input').value.trim().toUpperCase();
+  SAVE.clearSave();               // 새로 시작하면 옛 판은 버린다
   run = createRun({ seed: typed || randomSeed(), starterId: starterPick });
+  save();
   refreshMap();
+}
+
+/**
+ * 적어 둔 판을 이어서 연다.
+ * 전투 중이었으면 그 전투를 그대로 되살리고, 아니면 지도에서 시작한다.
+ */
+function resumeRun() {
+  const data = SAVE.peek();
+  if (!data) return;
+  try {
+    run = createRun({ saved: data });
+  } catch (err) {
+    // 저장 형식이 안 맞으면 붙들고 있어 봐야 매번 같은 자리에서 터진다
+    console.error('저장을 불러오지 못했다', err);
+    SAVE.clearSave();
+    renderTitle();
+    return;
+  }
+  if (data.combat) startCombat(data.combat.roomType, data.combat.snap);
+  else refreshMap();
+}
+
+/** 지금 상태를 적어 둔다. 방을 옮길 때와 턴이 넘어갈 때마다 부른다 */
+function save() {
+  if (!run) return;
+  SAVE.writeSave(run, combat);
 }
 
 function refreshMap() {
   // ★ 화면을 먼저 켜고 나서 그린다. 반대로 하면 지도가 display:none 인 채로
   //   그려져 높이가 0 이고, "갈 수 있는 방으로 스크롤" 이 통째로 무시된다.
   //   지도를 열면 맨 위(마지막 층)가 보여서 갈 곳이 안 보였던 원인이다.
+  combat = view = null;           // 지도에 섰다는 건 전투가 끝났다는 뜻
+  save();
   goto('screen-map');
   renderTopbars();
   renderMap(run, enterRoom);
@@ -165,8 +204,14 @@ function handleRequest() {
 }
 
 // ── 전투 ────────────────────────────────────────────────────
-function startCombat(roomType) {
-  const encounter = run.rollEncounter(roomType);
+function startCombat(roomType, snap = null) {
+  // 이어하기면 적을 새로 굴리면 안 된다 — 스냅샷 안에 그때 만난 적이 들어 있다.
+  // 여기서 rollEncounter 를 또 부르면 난수 스트림이 한 칸 밀려서, 이어할
+  // 때마다 이후 보상이 조금씩 달라진다.
+  const encounter = snap
+    ? { ids: snap.enemies.map((e) => e.id) }
+    : run.rollEncounter(roomType);
+  run.state.lastCombatRoom = roomType;
 
   const { hpMul, dmgMul } = run.actMul(roomType);
   combat = createCombat({
@@ -176,7 +221,9 @@ function startCombat(roomType) {
     encounter,
     hpMul, dmgMul,
     rng: run.state.streams.combat,
-    onChange: () => { view?.render(); renderTopbars(); },
+    // 카드 한 장 낼 때마다 적어 둔다. 턴 경계에서만 적으면 "긴 턴을 다 짜
+    // 놓고 탭을 닫았다" 가 통째로 날아간다. 쓰기는 1ms 안쪽이라 부담이 없다.
+    onChange: () => { view?.render(); renderTopbars(); save(); },
     onFx: (e) => view?.playFx(e),
   });
 
@@ -184,25 +231,36 @@ function startCombat(roomType) {
 
   goto('screen-combat');
   view.clearFx();
-  combat.begin();
+  if (snap) combat.resume(snap); else combat.begin();
   view.render();
   renderTopbars();
+  save();
 }
 
 function finishCombat(result, roomType) {
+  combat = view = null;
+  run.state.lastCombatRoom = null;
   if (result === 'LOST') {
     run.state.dead = true;
+    SAVE.clearSave();             // 죽으면 되돌아갈 자리는 없다
     OV.showResult(run, false, backToTitle);
     return;
   }
+  save();
 
   if (roomType === 'BOSS') {
     run.grantRandomRelic(['BOSS']);
     const act = run.act();
     const more = run.advanceAct();        // 다음 막이 있으면 지도를 새로 깐다
     if (more) {
+      // ★ 여기서 반드시 다시 적는다. advanceAct 전에 적은 저장에는 아직
+      //   이전 막이 들어 있는데, 그 상태로 이어하면 이미 잡은 보스 방에
+      //   서 있게 되어 갈 수 있는 방이 하나도 없다 — 판이 막힌다.
+      save();
       OV.showActClear(run, act, run.act(), () => { renderTopbars(); refreshMap(); });
     } else {
+      run.state.won = true;
+      SAVE.clearSave();
       OV.showResult(run, true, backToTitle);
     }
     return;
@@ -232,6 +290,13 @@ const byCostName = (a, b) => {
 
 // ── 배선 ────────────────────────────────────────────────────
 $('#btn-start').onclick = startRun;
+$('#btn-resume').onclick = resumeRun;
+$('#btn-discard').onclick = () => { SAVE.clearSave(); renderTitle(); };
+
+// 탭을 닫거나 뒤로 갈 때 마지막으로 한 번 더. 평소 저장은 카드를 낼 때마다
+// 이미 돌지만, 덮개(보상·상점)에서 값이 바뀐 직후에 닫는 경우가 남는다.
+window.addEventListener('pagehide', save);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 $('#seed-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') startRun(); });
 $('#pile-draw').onclick = () => {
   if (!combat) return;
@@ -252,6 +317,11 @@ $('#pile-discard').onclick = () => {
 window.addEventListener('resize', () => view?.render());
 
 // 콘솔에서 상태를 들여다볼 수 있게
-window.__game = { get run() { return run; }, get combat() { return combat; } };
+// 콘솔·테스트에서 흐름을 직접 태울 수 있게 열어 둔다
+window.__game = {
+  get run() { return run; },
+  get combat() { return combat; },
+  enterRoom, refreshMap, save,
+};
 
 renderTitle();
