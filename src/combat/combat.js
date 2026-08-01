@@ -16,6 +16,20 @@
 // 무엇이 어디에 붙는지:
 //   개체(포켓몬)에 — HP, 상태이상        → 교체해도 따라간다
 //   필드(선두 자리)에 — 방어도, 능력 랭크 → 교체하면 사라진다 (원작과 같다)
+//
+// ── 좌석(seat) ──
+// 멀티(최대 3인)를 위해 "누가 지금 카드를 내는가"를 좌석으로 뽑아 뒀다.
+// 좌석 하나가 포켓몬 하나와 덱 하나·에너지 하나를 갖는다.
+//
+//   1인 게임  = 좌석 1개. 파티 3마리를 그 좌석이 다 조종한다(지금까지 그대로).
+//   3인 게임  = 좌석 3개. 파티 3칸을 플레이어가 하나씩 맡는다.
+//
+// 한 라운드는 [좌석0 턴 → 좌석1 턴 → 좌석2 턴 → 적 턴] 이다. 방어도가
+// 사라지는 것도, 도트 피해도, 교체 1회 제한도 **라운드** 단위다 — 좌석마다
+// 걸면 3인이 방어도를 세 번 지우거나 세 번 교체하게 된다.
+//
+// 그래서 "선두"가 3인에서는 **누가 앞에서 맞을 것인가**라는 협동 판단이 된다.
+// 뒤에 있는 사람도 방어 카드로 앞사람을 막아 줄 수 있다(방어도는 필드에 붙는다).
 // ─────────────────────────────────────────────────────────────
 import { resolveCard } from '../data/cards.js';
 import { enemyOf } from '../data/enemies.js';
@@ -33,14 +47,16 @@ let enemyUid = 0;
 
 /**
  * @param party      런의 파티 배열 (그대로 변형한다 — 전투 결과가 런에 남아야 하므로)
- * @param deckCards  덱 개체 배열 [{uid,id,upgraded,owner}]
- * @param relics     가진 도구 id 배열
+ * @param deckCards  덱 개체 배열 [{uid,id,upgraded,owner}] — 1인 게임용
+ * @param seats      멀티용. [{ name, deck }] — 좌석 i 가 party[i] 를 맡는다.
+ *                   비우면 좌석 하나짜리(1인 게임)로 만든다.
+ * @param relics     가진 도구 id 배열 (멀티에서는 팀 공용)
  * @param encounter  { ids: ['pidgey', ...] }
  * @param rng        전투용 난수 스트림
  * @param onChange   상태가 바뀔 때마다 (UI 리렌더)
  * @param onFx       연출 이벤트
  */
-export function createCombat({ party, deckCards, relics = [], encounter, rng, onChange, onFx, speed = 1, hpMul = 1, dmgMul = 1 }) {
+export function createCombat({ party, deckCards, seats = null, localSeat = null, relics = [], encounter, rng, onChange, onFx, speed = 1, hpMul = 1, dmgMul = 1 }) {
   // 화면 쪽 콜백은 엔진 안에서 동기로 불린다. 거기서 난 예외가 그대로
   // 올라오면 전투 진행이 통째로 멈추므로(예전에 그렇게 판이 굳었다),
   // 연출이 실패하더라도 규칙은 계속 돌게 여기서 끊는다.
@@ -73,19 +89,36 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     };
   });
 
+  // ── 좌석 ─────────────────────────────────────────────────
+  // 좌석이 하나면 지금까지의 1인 게임과 완전히 같다. seats 를 넘기면
+  // 좌석 i 가 party[i] 를 맡는 멀티가 된다.
+  const SEATS = (seats && seats.length ? seats : [{ name: '나', deck: deckCards }])
+    .map((s, i) => ({
+      i, name: s.name || `${i + 1}P`,
+      deck: s.deck || [],
+      drawPile: [], hand: [], discardPile: [], exhaustPile: [],
+      energy: 0,
+      maxEnergy: BASE_ENERGY + sumField(relics, 'energyBonus'),
+      cardsThisTurn: 0, attacksThisTurn: 0,
+      nextMult: 1, bonusEnergyNext: 0,
+    }));
+  const solo = SEATS.length === 1;
+
   const S = {
-    turn: 0,
+    turn: 0,                  // 라운드 수
     phase: 'PLAYER',          // PLAYER | ENEMY | WON | LOST
     busy: false,
     energy: 0,
-    maxEnergy: BASE_ENERGY + sumField(relics, 'energyBonus'),
+    maxEnergy: SEATS[0].maxEnergy,
     party,
-    active: party.findIndex((m) => !m.fainted),
+    seats: SEATS,
+    seat: 0,                  // 지금 카드를 낼 수 있는 좌석
+    active: party.findIndex((m) => !m.fainted),   // 앞에서 맞는 자리
     block: 0,
     ranks: { ATK: 0, DEF: 0 },
     enemies,
     drawPile: [], hand: [], discardPile: [], exhaustPile: [],
-    switchedThisTurn: false,
+    switchedThisTurn: false,  // 라운드에 한 번
     cardsThisTurn: 0,
     attacksThisTurn: 0,
     nextMult: 1,
@@ -95,7 +128,15 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     log: [],
   };
 
-  const active = () => S.party[S.active];
+  /** 앞에 서 있는 포켓몬 — 적 공격을 맞고, 방어도·랭크를 갖는다 */
+  const front = () => S.party[S.active];
+  /**
+   * 지금 카드를 내는 사람의 포켓몬.
+   * 1인 게임에서는 선두가 곧 내 포켓몬이라 front() 와 같다. 멀티에서는
+   * 뒤에 있어도 자기 카드를 내므로 갈라진다 — 회복·반동은 낸 사람에게,
+   * 방어도·랭크는 앞사람에게 간다.
+   */
+  const me = () => (solo ? S.party[S.active] : S.party[S.seat]);
   const aliveEnemies = () => S.enemies.filter((e) => !e.dead);
   const aliveMembers = () => S.party.filter((m) => !m.fainted);
   const say = (t) => { S.log.push(t); if (S.log.length > 40) S.log.shift(); };
@@ -108,7 +149,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     get attacksThisTurn() { return S.attacksThisTurn; },
     gainBlock: (n) => { S.block += n; },
     gainEnergy: (n) => { S.energy += n; },
-    healActive: (n) => healMember(active(), n),
+    healActive: (n) => healMember(me(), n),
     statusAllEnemies: (id, n) => { for (const e of aliveEnemies()) addStatus(e.status, id, n); },
   };
 
@@ -198,9 +239,21 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
   }
 
   /** 이 카드를 지금 쓸 수 있나 — 못 쓰면 이유를 돌려준다 */
-  function playability(inst) {
+  /**
+   * 이 카드를 낼 수 있는가.
+   *
+   * ★ mine 을 나눠 둔 이유: 멀티에서 좌석 잠금을 규칙 안에 그냥 넣었더니,
+   *   "내가 못 낸다"와 "이 카드는 낼 수 없다"가 한 덩어리가 됐다. 그래서
+   *   방장이 확정해 보낸 남의 카드까지 여기서 막혀 손님 화면에만 아무 일도
+   *   안 일어났다(방어도 5 대 0 으로 갈렸다). 좌석 잠금은 **화면이 묻는
+   *   질문**일 뿐이고, 확정된 행동을 적용할 때는 보지 않는다.
+   */
+  function playability(inst, { mine = true } = {}) {
     const c = resolveCard(inst);
     if (S.phase !== 'PLAYER' || S.busy) return { ok: false, reason: '내 턴이 아니다' };
+    if (mine && localSeat !== null && S.seat !== localSeat) {
+      return { ok: false, reason: `${S.seats[S.seat].name}의 차례다` };
+    }
     if (c.cost > S.energy) return { ok: false, reason: '에너지가 부족하다' };
     if (c.owner) {
       const owner = S.party.find((m) => m.species === c.owner);
@@ -228,14 +281,14 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     const r = playerDamage({
       power,
       moveType: c.type,
-      attackerTypes: active()?.types || [],
+      attackerTypes: me()?.types || [],
       defenderTypes: target.types,
       atkRank: S.ranks.ATK,
       defRank: target.ranks.DEF,
       powerAdd: sumHook(relics, 'powerMod', K, c) + weatherAdd(c),
       damageMul: mulHook(relics, 'damageMul', K, c),
       nextMult: c.kind === 'ATTACK' ? S.nextMult : 1,
-      burned: (active()?.status?.BURN || 0) > 0,
+      burned: (me()?.status?.BURN || 0) > 0,
       resistFloor,
     });
     return { ...r, hits: dmgOp.hits || 1 };
@@ -281,14 +334,14 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
             const r = playerDamage({
               power: op.power,
               moveType: c.type,
-              attackerTypes: active().types,
+              attackerTypes: me().types,
               defenderTypes: t.types,
               atkRank: S.ranks.ATK,
               defRank: t.ranks.DEF,
               powerAdd: sumHook(relics, 'powerMod', K, c) + weatherAdd(c),
               damageMul: mulHook(relics, 'damageMul', K, c),
               nextMult: c.kind === 'ATTACK' ? S.nextMult : 1,
-              burned: active().status.BURN > 0,
+              burned: me().status.BURN > 0,
               resistFloor,
             });
             ctx.lastDamage += hurtEnemy(t, r.dmg, { mult: r.mult, type: c.type });
@@ -300,14 +353,14 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
             const r = playerDamage({
               power: op.power,
               moveType: c.type,
-              attackerTypes: active().types,
+              attackerTypes: me().types,
               defenderTypes: t.types,
               atkRank: S.ranks.ATK,
               defRank: t.ranks.DEF,
               powerAdd: sumHook(relics, 'powerMod', K, c) + weatherAdd(c),
               damageMul: mulHook(relics, 'damageMul', K, c),
               nextMult: c.kind === 'ATTACK' ? S.nextMult : 1,
-              burned: active().status.BURN > 0,
+              burned: me().status.BURN > 0,
               resistFloor,
             });
             ctx.lastDamage += hurtEnemy(t, r.dmg, { mult: r.mult, type: c.type });
@@ -333,7 +386,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
           break;
         case 'status': {
           const t = op.to === 'self' ? null : (target && !target.dead ? target : aliveEnemies()[0]);
-          if (op.to === 'self') addStatus(active().status, op.status, op.amount);
+          if (op.to === 'self') addStatus(me().status, op.status, op.amount);
           else if (t) addStatus(t.status, op.status, op.amount);
           break;
         }
@@ -364,14 +417,14 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
           const r = playerDamage({
             power,
             moveType: c.type,
-            attackerTypes: active().types,
+            attackerTypes: me().types,
             defenderTypes: t.types,
             atkRank: S.ranks.ATK,
             defRank: t.ranks.DEF,
             powerAdd: sumHook(relics, 'powerMod', K, c) + weatherAdd(c),
             damageMul: mulHook(relics, 'damageMul', K, c),
             nextMult: c.kind === 'ATTACK' ? S.nextMult : 1,
-            burned: active().status.BURN > 0,
+            burned: me().status.BURN > 0,
             resistFloor,
           });
           ctx.lastDamage += hurtEnemy(t, r.dmg, { mult: r.mult, type: c.type });
@@ -404,11 +457,11 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
 
         case 'draw':   draw(op.amount); break;
         case 'energy': S.energy += op.amount; break;
-        case 'heal':   healMember(active(), op.amount); break;
-        case 'drain':  healMember(active(), Math.floor(ctx.lastDamage * op.ratio)); break;
-        case 'recoil': hurtMemberDirect(active(), op.amount); break;
+        case 'heal':   healMember(me(), op.amount); break;
+        case 'drain':  healMember(me(), Math.floor(ctx.lastDamage * op.ratio)); break;
+        case 'recoil': hurtMemberDirect(me(), op.amount); break;
         case 'loseHpRatio': {
-          const m = active();
+          const m = me();
           hurtMemberDirect(m, Math.floor(m.hp * op.ratio));
           break;
         }
@@ -453,7 +506,8 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     const i = S.hand.findIndex((c) => c.uid === uid);
     if (i < 0) return false;
     const inst = S.hand[i];
-    const check = playability(inst);
+    // mine:false — 여기 온 카드는 이미 "낼 수 있다"고 확정된 것이다
+    const check = playability(inst, { mine: false });
     if (!check.ok) return false;
 
     const c = resolveCard(inst);
@@ -493,6 +547,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     if (index === S.active) return false;
     const m = S.party[index];
     if (!m || m.fainted) return false;
+    if (S.phase !== 'PLAYER' || S.busy) return false;
 
     const free = opt.free || anyField(relics, 'freeSwitch');
     if (!opt.free) {
@@ -513,8 +568,10 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     return true;
   }
 
+  /** 화면이 묻는 질문 — 좌석 잠금이 여기 들어간다 */
   const canSwitch = () =>
     S.phase === 'PLAYER' && !S.busy && !S.switchedThisTurn &&
+    (localSeat === null || S.seat === localSeat) &&
     (anyField(relics, 'freeSwitch') || S.energy >= SWITCH_COST) &&
     aliveMembers().length > 1;
 
@@ -538,7 +595,38 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     }
   }
 
-  function startPlayerTurn() {
+  // ── 좌석 넣고 빼기 ────────────────────────────────────────
+  // 엔진의 나머지 코드는 전부 S.hand / S.energy 를 그대로 본다. 좌석마다
+  // 그 묶음을 통째로 갈아 끼우는 방식이라, 멀티를 넣으면서 카드 효과 ·
+  // 도구 · 화면 코드를 하나도 안 건드렸다. (좌석이 하나면 넣고 빼기가
+  // 자기 자신에게 일어나므로 1인 게임은 완전히 그대로 돈다)
+  function stashSeat() {
+    const s = S.seats[S.seat];
+    s.drawPile = S.drawPile; s.hand = S.hand;
+    s.discardPile = S.discardPile; s.exhaustPile = S.exhaustPile;
+    s.energy = S.energy; s.maxEnergy = S.maxEnergy;
+    s.cardsThisTurn = S.cardsThisTurn; s.attacksThisTurn = S.attacksThisTurn;
+    s.nextMult = S.nextMult; s.bonusEnergyNext = S.bonusEnergyNext;
+  }
+  function loadSeat(i) {
+    S.seat = i;
+    const s = S.seats[i];
+    S.drawPile = s.drawPile; S.hand = s.hand;
+    S.discardPile = s.discardPile; S.exhaustPile = s.exhaustPile;
+    S.energy = s.energy; S.maxEnergy = s.maxEnergy;
+    S.cardsThisTurn = s.cardsThisTurn; S.attacksThisTurn = s.attacksThisTurn;
+    S.nextMult = s.nextMult; S.bonusEnergyNext = s.bonusEnergyNext;
+  }
+
+  /** 아직 이번 라운드에 카드를 낼 수 있는 좌석 — 쓰러진 사람은 건너뛴다 */
+  const seatCanAct = (i) => solo || !S.party[i].fainted;
+  function nextSeatAfter(i) {
+    for (let k = i + 1; k < S.seats.length; k++) if (seatCanAct(k)) return k;
+    return -1;
+  }
+
+  /** 라운드 시작 — 방어도·교체 제한처럼 **판 전체**에 걸리는 것들 */
+  function startRound() {
     // ★ 방어도는 **여기서** 사라진다. 예전에는 내 턴이 끝날 때 지웠는데,
     //   그러면 적이 때리기도 전에 0이 되어 방어 카드가 게임 내내 아무 일도
     //   하지 않았다. 방어도 20에 7 피해를 받으면 HP 가 그대로 7 깎였다.
@@ -549,7 +637,18 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
 
     S.turn++;
     S.phase = 'PLAYER';
+    // 교체는 라운드에 한 번이다. 좌석마다 한 번으로 두면 3인이 한 라운드에
+    // 세 번 교체해 버려서, 교체에 값을 매긴 의미가 사라진다.
     S.switchedThisTurn = false;
+
+    const first = seatCanAct(0) ? 0 : nextSeatAfter(0);
+    startSeatTurn(first < 0 ? 0 : first);
+  }
+
+  /** 좌석 하나의 턴 — 에너지와 드로우는 사람마다 따로 */
+  function startSeatTurn(i) {
+    loadSeat(i);
+    S.phase = 'PLAYER';
     S.cardsThisTurn = 0;
     S.attacksThisTurn = 0;
     S.nextMult = 1;
@@ -557,7 +656,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     S.energy = S.maxEnergy + S.bonusEnergyNext;
     S.bonusEnergyNext = 0;
     runHook(relics, 'onTurnStart', K);
-    if (active().status.PARA > 0) S.energy = Math.max(0, S.energy - 1);
+    if (me().status.PARA > 0) S.energy = Math.max(0, S.energy - 1);
 
     const extra = S.turn === 1 ? sumField(relics, 'extraOpeningDraw') : 0;
     draw(Math.max(1, BASE_DRAW + extra - sumField(relics, 'drawPenalty')));
@@ -596,13 +695,24 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
    */
   async function endTurn() {
     if (S.phase !== 'PLAYER' || S.busy) return;
+
+    // ── 아직 뒤에 남은 좌석이 있으면 적 턴이 아니라 다음 사람에게 넘긴다 ──
+    runHook(relics, 'onTurnEnd', K);
+    discardHand();
+    stashSeat();
+    const next = nextSeatAfter(S.seat);
+    if (next >= 0) {
+      startSeatTurn(next);
+      return;
+    }
+
     S.busy = true;
     S.awaitSwitch = null;
     try {
       await runTurn();
     } catch (err) {
       console.error('적 턴 처리 중 오류 — 내 턴으로 되돌린다', err);
-      if (S.phase === 'ENEMY') { rollIntents(); startPlayerTurn(); }
+      if (S.phase === 'ENEMY') { rollIntents(); startRound(); }
     } finally {
       S.busy = false;
       notify();                 // busy 가 풀린 걸 화면에 반영해야 버튼이 다시 살아난다
@@ -610,10 +720,12 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     return finish();
   }
 
+  /** 마지막 좌석까지 끝난 뒤 — 라운드 마무리와 적 턴 */
   async function runTurn() {
-    // ── 내 턴 마무리 ──
-    runHook(relics, 'onTurnEnd', K);
-    if (S.powers.AQUA_RING) healMember(active(), S.powers.AQUA_RING);
+    // ── 라운드 마무리 ──
+    // 여기 있는 것들은 사람마다가 아니라 **판 전체에 한 번씩**이다.
+    // 도트 피해를 좌석마다 굴리면 3인에서 독이 세 배로 아프다.
+    if (S.powers.AQUA_RING) healMember(front(), S.powers.AQUA_RING);
     if (S.powers.SANDSTORM) for (const e of aliveEnemies()) hurtEnemy(e, S.powers.SANDSTORM);
 
     // 적 도트 피해
@@ -621,15 +733,12 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
       const d = tickStatus(e.status, { burnMul: burnMul() });
       if (d) hurtEnemy(e, d, { dot: true });
     }
-    // 내 도트 피해
-    const mine = tickStatus(active().status);
-    if (mine) hurtMemberDirect(active(), mine);
+    // 내 도트 피해 — 앞에 선 포켓몬만. 벤치는 독을 안 앓는다(설계상)
+    const mine = tickStatus(front().status);
+    if (mine) hurtMemberDirect(front(), mine);
 
-    discardHand();
-
-    // 턴이 끝나면 방어도가 사라진다 (빛의점토가 있으면 절반 남는다)
     // 뿌리박기 — 턴이 끝날 때 방어도를 준다. 이 방어도는 적 턴을 버텨야 하므로
-    // 여기서 주고, 지우는 건 다음 내 턴 시작 때 한다(startPlayerTurn 참고).
+    // 여기서 주고, 지우는 건 다음 라운드 시작 때 한다(startRound 참고).
     if (S.powers.INGRAIN) {
       S.block += S.powers.INGRAIN;
       fx({ kind: 'block', side: 'player', value: S.powers.INGRAIN });
@@ -657,7 +766,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     if (S.phase === 'LOST') return;
 
     rollIntents();
-    startPlayerTurn();
+    startRound();
   }
 
   async function takeEnemyTurn(e) {
@@ -677,7 +786,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
           power: mv.power,
           moveType: mv.type,
           attackerTypes: e.types,
-          defenderTypes: active().types,
+          defenderTypes: front().types,
           atkRank: e.ranks.ATK,
           defRank: S.ranks.DEF,
           burned: e.status.BURN > 0,
@@ -685,7 +794,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
           powerMul: dmgMul,
         });
         if (r.mult === 0) {
-          say(`${active().ko}에게는 효과가 없다!`);           // '에게' 는 받침과 무관하다
+          say(`${front().ko}에게는 효과가 없다!`);           // '에게' 는 받침과 무관하다
           fx({ kind: 'immune', side: 'player' });
           break;
         }
@@ -697,7 +806,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
           n -= absorbed;
         }
         if (n > 0) {
-          const m = active();
+          const m = front();
           // 기합의띠 — 전투당 한 번, 쓰러질 피해를 1로 버틴다
           if (m.hp - n <= 0 && S.enduresLeft > 0) {
             S.enduresLeft--;
@@ -708,7 +817,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
         }
         dealt += r.dmg;
         fx({ kind: 'damage', side: 'player', value: r.dmg, mult: r.mult, type: mv.type });
-        checkFaint(active());
+        checkFaint(front());
         notify();
         if (S.phase === 'LOST') return;
         if (hits > 1) await pause(160);
@@ -718,7 +827,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
 
     if (mv.block) e.block += mv.block;
     if (mv.heal) { e.hp = Math.min(e.maxHp, e.hp + mv.heal); }
-    if (mv.status) addStatus(active().status, mv.status.kind, mv.status.amount);
+    if (mv.status) addStatus(front().status, mv.status.kind, mv.status.amount);
     if (mv.rank) {
       if (mv.rank.to === 'self') e.ranks[mv.rank.stat] = clampRank(e.ranks[mv.rank.stat] + mv.rank.delta);
       else S.ranks[mv.rank.stat] = clampRank(S.ranks[mv.rank.stat] + mv.rank.delta);
@@ -750,10 +859,15 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     // 상태이상은 전투가 끝나면 낫는다. 판을 넘겨 끌고 다니면 이미 진 판을
     // 계속 붙들고 있게 되는데, 로그라이크에서 그건 벌이 아니라 지루함이다.
     for (const m of S.party) m.status = emptyStatus();
-    S.drawPile = rng.shuffle(deckCards.slice());
+    // 좌석마다 자기 덱을 섞는다. 같은 rng 를 쓰므로 순서는 결정적이다.
+    for (const st of S.seats) {
+      st.drawPile = rng.shuffle(st.deck.slice());
+      st.hand = []; st.discardPile = []; st.exhaustPile = [];
+    }
+    loadSeat(0);
     runHook(relics, 'onCombatStart', K);
     rollIntents();
-    startPlayerTurn();
+    startRound();
   }
 
   // ── 저장·복원 ────────────────────────────────────────────
@@ -765,19 +879,24 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
   const cardUids = (pile) => pile.map((c) => c.uid);
 
   function snapshot() {
+    stashSeat();                 // 지금 좌석의 손패도 좌석 묶음에 넣어 두고 적는다
     return {
-      turn: S.turn, phase: S.phase, energy: S.energy, maxEnergy: S.maxEnergy,
+      turn: S.turn, phase: S.phase, seat: S.seat,
+      seats: S.seats.map((st) => ({
+        name: st.name,
+        drawPile: cardUids(st.drawPile), hand: cardUids(st.hand),
+        discardPile: cardUids(st.discardPile), exhaustPile: cardUids(st.exhaustPile),
+        energy: st.energy, maxEnergy: st.maxEnergy,
+        cardsThisTurn: st.cardsThisTurn, attacksThisTurn: st.attacksThisTurn,
+        nextMult: st.nextMult, bonusEnergyNext: st.bonusEnergyNext,
+      })),
       active: S.active, block: S.block, ranks: { ...S.ranks },
       enemies: S.enemies.map((e) => ({
         uid: e.uid, slot: e.slot, id: e.id, hp: e.hp, maxHp: e.maxHp,
         block: e.block, ranks: { ...e.ranks }, status: { ...e.status },
         turn: e.turn, history: e.history.slice(), intent: e.intent, dead: e.dead,
       })),
-      drawPile: cardUids(S.drawPile), hand: cardUids(S.hand),
-      discardPile: cardUids(S.discardPile), exhaustPile: cardUids(S.exhaustPile),
       switchedThisTurn: S.switchedThisTurn,
-      cardsThisTurn: S.cardsThisTurn, attacksThisTurn: S.attacksThisTurn,
-      nextMult: S.nextMult, bonusEnergyNext: S.bonusEnergyNext,
       powers: { ...S.powers }, enduresLeft: S.enduresLeft,
       log: S.log.slice(-12),
       rng: rng.getState(),
@@ -786,21 +905,29 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
 
   /** begin() 대신 부른다 — 적었던 자리에서 그대로 이어 붙인다 */
   function resume(snap) {
-    const byUid = new Map(deckCards.map((c) => [c.uid, c]));
+    const byUid = new Map();
+    for (const st of S.seats) for (const c of st.deck) byUid.set(c.uid, c);
     const pile = (uids) => (uids || []).map((u) => byUid.get(u)).filter(Boolean);
 
+    (snap.seats || []).forEach((sv, i) => {
+      const st = S.seats[i];
+      if (!st) return;
+      st.drawPile = pile(sv.drawPile); st.hand = pile(sv.hand);
+      st.discardPile = pile(sv.discardPile); st.exhaustPile = pile(sv.exhaustPile);
+      st.energy = sv.energy; st.maxEnergy = sv.maxEnergy;
+      st.cardsThisTurn = sv.cardsThisTurn; st.attacksThisTurn = sv.attacksThisTurn;
+      st.nextMult = sv.nextMult; st.bonusEnergyNext = sv.bonusEnergyNext;
+    });
+
     Object.assign(S, {
-      turn: snap.turn, phase: snap.phase, energy: snap.energy, maxEnergy: snap.maxEnergy,
+      turn: snap.turn, phase: snap.phase,
       active: snap.active, block: snap.block, ranks: { ...snap.ranks },
-      drawPile: pile(snap.drawPile), hand: pile(snap.hand),
-      discardPile: pile(snap.discardPile), exhaustPile: pile(snap.exhaustPile),
       switchedThisTurn: snap.switchedThisTurn,
-      cardsThisTurn: snap.cardsThisTurn, attacksThisTurn: snap.attacksThisTurn,
-      nextMult: snap.nextMult, bonusEnergyNext: snap.bonusEnergyNext,
       powers: { ...snap.powers }, enduresLeft: snap.enduresLeft,
       log: snap.log ? snap.log.slice() : [],
       busy: false,
     });
+    loadSeat(Math.min(snap.seat || 0, S.seats.length - 1));
 
     S.enemies = snap.enemies.map((e) => {
       const def = enemyOf(e.id);
@@ -831,7 +958,11 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     playability,
     previewCard,
     previewIntent,
-    activeMember: active,
+    /** 지금 내가 조종할 차례인가 (1인 게임은 늘 참) */
+    myTurn: () => localSeat === null || (S.seat === localSeat && S.phase === 'PLAYER' && !S.busy),
+    get localSeat() { return localSeat; },
+    activeMember: front,        // 앞에 선 포켓몬 (화면·AI 가 쓰는 이름은 그대로 둔다)
+    seatMember: me,             // 지금 카드를 내는 사람의 포켓몬
     aliveEnemies,
     rankMul,
     set onEnd(fn) { onEnd = fn; },

@@ -33,11 +33,58 @@
           <input id="seed-input" type="text" maxlength="12" spellcheck="false" />
         </label>
         <button id="btn-start" class="btn btn-primary btn-lg" disabled>모험을 시작한다</button>
+        <button id="btn-multi" class="btn btn-lg">같이 하기</button>
       </div>
 
       <p class="title-note">
         같은 시드는 같은 지도·같은 보상을 낸다. 비워 두면 무작위로 정해진다.
       </p>
+    </div>
+  </section>
+
+  <!-- ══ 멀티 로비 ════════════════════════════════════════════ -->
+  <section id="screen-lobby" class="screen">
+    <div class="lobby-wrap">
+      <h2 class="lobby-title">같이 하기</h2>
+
+      <!-- 방을 만들지 들어갈지 -->
+      <div id="lobby-entry" class="lobby-entry">
+        <button id="btn-create" class="btn btn-primary btn-lg">방 만들기</button>
+        <div class="lobby-or">또는</div>
+        <label class="seed-row">
+          <span>방 코드</span>
+          <input id="code-input" type="text" maxlength="4" spellcheck="false" placeholder="ABCD" />
+        </label>
+        <button id="btn-join" class="btn btn-lg">방 들어가기</button>
+        <button id="btn-lobby-back" class="btn-linky">돌아가기</button>
+      </div>
+
+      <!-- 들어온 뒤 -->
+      <div id="lobby-room" class="lobby-room" hidden>
+        <div class="room-code">
+          <span class="room-code-label">방 코드</span>
+          <b id="room-code-text">----</b>
+          <button id="btn-copy-code" class="btn-linky">복사</button>
+        </div>
+        <p class="lobby-hint">이 코드를 같이 할 사람에게 알려 주세요. 최대 3명.</p>
+
+        <div id="lobby-players" class="lobby-players"></div>
+
+        <div class="lobby-pick">
+          <h3>파트너를 고른다</h3>
+          <div id="lobby-starters" class="starter-list"></div>
+        </div>
+
+        <div id="lobby-diff" class="lobby-diff"></div>
+
+        <div class="lobby-actions">
+          <button id="btn-ready" class="btn btn-lg">준비 완료</button>
+          <button id="btn-go" class="btn btn-primary btn-lg" hidden disabled>모두 모였다, 출발</button>
+          <button id="btn-leave" class="btn-linky">나가기</button>
+        </div>
+      </div>
+
+      <div id="lobby-msg" class="lobby-msg"></div>
     </div>
   </section>
 

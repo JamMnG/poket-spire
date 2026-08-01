@@ -38,8 +38,11 @@ export const getKnobs = () => ACTS.map((a) => [a.hpMul, a.hpRamp, a.dmgMul, a.dm
 /** 전투 하나를 봇이 끝까지 둔다 */
 async function fight(run, kind) {
   const { hpMul, dmgMul } = run.actMul(kind);
+  const multi = run.isMulti();
   const C = createCombat({
     party: run.state.party, deckCards: run.state.deck, relics: run.state.relics,
+    // 멀티: 좌석마다 자기 덱. 봇은 좌석을 차례로 두게 된다(endTurn 이 넘긴다)
+    seats: multi ? run.state.players.map((p) => ({ name: p.name, deck: p.deck })) : null,
     encounter: run.rollEncounter(kind), hpMul, dmgMul,
     rng: run.state.streams.combat, onChange: () => {}, onFx: () => {}, speed: 0,
   });
@@ -54,15 +57,19 @@ async function fight(run, kind) {
     let incoming = incomingFor();
     const hp = C.activeMember().hp;
 
-    // 아플 것 같으면, 덜 아픈 애로 바꾼다
-    if (C.canSwitch() && incoming > hp * 0.5) {
-      let best = -1, gain = 0;
+    // 아플 것 같으면, 덜 아픈 애로 바꾼다.
+    // 멀티에서는 "상성이 나은 애"만이 아니라 "아직 팔팔한 애"로 바꾸는 것도
+    // 중요하다 — 앞사람 하나가 모든 피해를 받으므로 돌려 가며 맞아야 한다.
+    if (C.canSwitch() && (incoming > hp * 0.5 || hp < C.activeMember().maxHp * 0.35)) {
+      let best = -1, score = 0;
       S.party.forEach((m, i) => {
         if (i === S.active || m.fainted || m.hp < m.maxHp * 0.4) return;
         const after = incomingFor(i);
-        if (incoming - after > gain) { gain = incoming - after; best = i; }
+        // 줄어드는 피해 + 더 두꺼운 체력만큼 점수를 준다
+        const gain = (incoming - after) + (m.hp - hp) * 0.35;
+        if (gain > score) { score = gain; best = i; }
       });
-      if (best >= 0 && gain >= 8) { C.switchTo(best); incoming = incomingFor(); }
+      if (best >= 0 && score >= 8) { C.switchTo(best); incoming = incomingFor(); }
     }
 
     // 들어올 만큼은 막고, 나머지는 전부 때린다
@@ -124,17 +131,28 @@ function doShop(run) {
   }
 }
 
-/** 모닥불 — 아프거나 다음이 보스면 눕고, 멀쩡하면 기술을 다듬는다 */
+/**
+ * 모닥불 — 아프거나 다음이 보스면 눕고, 멀쩡하면 기술을 다듬는다.
+ *
+ * ★ 판단 기준이 **제일 아픈 한 마리**여야 한다. 파티 전체 HP 비율로 봤더니
+ *   3인에서는 안 맞은 두 명이 비율을 끌어올려 봇이 한 번도 안 누웠다.
+ *   그 상태로 잰 3인 난이도는 실제보다 훨씬 어렵게 나온다 — 난이도가
+ *   아니라 봇의 실수를 재고 있었던 것이다.
+ */
 function doRest(run, bossNext) {
-  const ratio = run.totalHp() / run.totalMaxHp();
-  if (bossNext || ratio < 0.62) { run.healAllPercent(0.35); return; }
+  const worst = Math.min(...run.state.party.map((m) => m.hp / m.maxHp));
+  if (bossNext || worst < 0.62) { run.healAllPercent(0.35); return; }
   const c = run.state.deck.find((x) => !x.upgraded);
   if (c) run.upgradeCard(c.uid); else run.healAllPercent(0.35);
 }
 
 /** 3막까지 한 판 */
-export async function run1(seed, starter) {
-  const run = createRun({ seed, starterId: starter });
+export async function run1(seed, starter, playerCount = 1) {
+  const run = playerCount > 1
+    ? createRun({ seed, players: Array.from({ length: playerCount }, (_, i) => ({
+        name: `${i + 1}P`, starter: ['charmander', 'squirtle', 'bulbasaur'][i % 3],
+      })) })
+    : createRun({ seed, starterId: starter });
   const stats = [];
   for (let act = 1; act <= 3; act++) {
     const floors = ACTS[act - 1].floors;
@@ -159,8 +177,11 @@ export async function run1(seed, starter) {
         run.grantRandomRelic(['BOSS']);
         if (act < 3) run.advanceAct();
       } else {
-        const id = bestCard(run, run.rollCardReward(3));
-        if (id) run.addCard(id);
+        // 사람마다 자기 몫을 굴려 자기 덱에 넣는다 (main.js 와 같은 순서)
+        run.state.players.forEach((p, i) => {
+          const ids = run.rollCardReward(3);
+          run.asPlayer(i, () => { const id = bestCard(run, ids); if (id) run.addCard(id); });
+        });
         if (kind === 'ELITE') run.grantRandomRelic();
       }
     }
@@ -169,13 +190,13 @@ export async function run1(seed, starter) {
 }
 
 /** n판 × 스타터별로 돌려 표를 만든다 */
-export async function measure(n = 8, starters = ['charmander', 'squirtle', 'bulbasaur']) {
+export async function measure(n = 8, starters = ['charmander', 'squirtle', 'bulbasaur'], playerCount = 1) {
   const agg = {}, deaths = {}, perStarter = {};
   let win = 0, total = 0;
   for (const st of starters) {
     perStarter[st] = 0;
     for (let i = 0; i < n; i++) {
-      const r = await run1('S' + i, st);
+      const r = await run1('S' + i, st, playerCount);
       total++;
       if (r.dead) { const k = `a${r.act}-${r.kind}`; deaths[k] = (deaths[k] || 0) + 1; }
       else { win++; perStarter[st]++; }
@@ -192,6 +213,17 @@ export async function measure(n = 8, starters = ['charmander', 'squirtle', 'bulb
     t[k] = `${(a.lost / a.n * 100).toFixed(0)}%HP ${(a.turns / a.n).toFixed(1)}턴 n${a.n}`;
   }
   return { win: `${win}/${total}`, pct: Math.round(win / total * 100), perStarter, deaths, t };
+}
+
+/** 2·3인 협동 난이도 — 인원수 배율(acts.js PLAYER_SCALE)을 맞출 때 쓴다 */
+export async function measureMulti(n = 8) {
+  const out = {};
+  for (const c of [1, 2, 3]) {
+    const m = await measure(n, ['charmander'], c);
+    out[`${c}인`] = { 승률: m.win, 잡몹: [m.t['a1-MONSTER'], m.t['a2-MONSTER'], m.t['a3-MONSTER']],
+      보스: [m.t['a1-BOSS'], m.t['a2-BOSS'], m.t['a3-BOSS']], 죽은자리: m.deaths };
+  }
+  return out;
 }
 
 /** 배율까지 반영한 적 수치표 — 어디가 튀는지 눈으로 본다 */

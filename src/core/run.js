@@ -13,25 +13,39 @@ import { createStreams, randomSeed } from './rng.js';
 import { POKEMON, createMember } from '../data/pokemon.js';
 import { CARDS, POOL_IDS, makeCard, reviveCard } from '../data/cards.js';
 import { RELICS, availableRelics, sumField } from '../data/relics.js';
-import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD } from '../data/acts.js';
+import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD, scaleFor } from '../data/acts.js';
 import { generateMap, reachableFrom } from '../data/mapGen.js';
 import { pickEvent } from '../data/events.js';
 
 export const BASE_PARTY_SLOTS = 3;
 export const STARTING_GOLD = 99;
 
-export function createRun({ seed = randomSeed(), starterId = 'charmander', saved = null } = {}) {
+/**
+ * @param players 멀티용. [{ name, starter }] — 파티 칸을 한 명씩 맡는다.
+ *                비우면 starterId 한 명짜리(1인 게임)가 된다.
+ */
+export function createRun({ seed = randomSeed(), starterId = 'charmander', saved = null, players = null } = {}) {
   // 이어하기면 적어 둔 시드로 되살린다 — 시드가 다르면 지도부터 딴 판이 된다
   if (saved) { seed = saved.seed; starterId = saved.starter || starterId; }
   const streams = createStreams(seed);
 
+  // 사람마다 자기 덱을 갖는다. 1인이면 원소가 하나뿐이라 예전과 똑같다.
+  const ROSTER = (players && players.length ? players : [{ name: '나', starter: starterId }])
+    .map((p, i) => ({ i, name: p.name || `${i + 1}P`, starter: p.starter || starterId, deck: [] }));
+
   const R = {
     seed,
-    starter: starterId,
+    starter: ROSTER[0].starter,
     streams,
     act: 1,
-    party: [ createMember(starterId) ],
-    deck: [],
+    players: ROSTER,
+    /**
+     * 지금 "내 덱"이 누구 덱인가. 화면은 늘 자기 것을 보지만, 호스트가 남의
+     * 보상을 처리할 때는 잠깐 이 값을 옮긴다. 아래 deck 접근자가 이걸 본다 —
+     * 이렇게 해 두면 보상·상점·강화 코드가 멀티를 전혀 몰라도 된다.
+     */
+    viewer: 0,
+    party: ROSTER.map((p) => createMember(p.starter)),
     relics: [],
     gold: STARTING_GOLD,
     map: generateMap(streams.map, ACTS[0].floors),
@@ -47,14 +61,31 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     dead: false,
   };
 
+  // R.deck 은 "지금 보고 있는 사람의 덱"이다. 기존 코드(보상·상점·강화·저장)가
+  // 전부 run.state.deck 을 쓰고 있어서, 멀티를 넣으면서 그 코드를 하나도 안
+  // 건드리려고 접근자로 뒀다.
+  Object.defineProperty(R, 'deck', {
+    enumerable: true,
+    get() { return R.players[R.viewer].deck; },
+    set(v) { R.players[R.viewer].deck = v; },
+  });
+
+  /** 잠깐 다른 사람의 덱을 대상으로 무언가 한다 (호스트가 남의 보상을 처리할 때) */
+  function asPlayer(i, fn) {
+    const keep = R.viewer;
+    R.viewer = Math.min(Math.max(0, i), R.players.length - 1);
+    try { return fn(); } finally { R.viewer = keep; }
+  }
+
   // ── 시작 덱 (10장) ────────────────────────────────────────
   // 기본 공격 4 / 기본 방어 4 / 스타터 고유 2.
   // 고유 카드를 두 장 주는 게 핵심이다 — 한 장뿐이던 시절에는 스타터 셋이
   // 사실상 같은 덱으로 시작해서, 고른 파트너가 첫 판에 아무 차이도 안 냈다.
-  const sp = POKEMON[starterId];
-  for (let i = 0; i < 4; i++) R.deck.push(makeCard('tackle'));
-  for (let i = 0; i < 4; i++) R.deck.push(makeCard('defend'));
-  for (const id of sp.signatures) R.deck.push(makeCard(id, { owner: starterId }));
+  for (const p of ROSTER) {
+    for (let i = 0; i < 4; i++) p.deck.push(makeCard('tackle'));
+    for (let i = 0; i < 4; i++) p.deck.push(makeCard('defend'));
+    for (const id of POKEMON[p.starter].signatures) p.deck.push(makeCard(id, { owner: p.starter }));
+  }
 
   // ── 저장에서 되살리기 ─────────────────────────────────────
   // 위에서 만든 기본값을 통째로 덮어쓴다. 지도를 다시 만들지 않고 적어 둔
@@ -82,14 +113,27 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
   }
 
   // ── 파티 ─────────────────────────────────────────────────
-  const partySlots = () => BASE_PARTY_SLOTS + (R.relics.some((id) => RELICS[id]?.extraPartySlot) ? 1 : 0);
+  const isMulti = () => R.players.length > 1;
+  // 멀티에서는 파티 칸을 사람이 하나씩 채운다. 잡아도 자리가 안 나는 대신,
+  // 잡은 포켓몬의 기술 두 장은 잡은 사람 덱에 들어간다(catchPokemon 참고).
+  const partySlots = () => (isMulti()
+    ? R.players.length
+    : BASE_PARTY_SLOTS + (R.relics.some((id) => RELICS[id]?.extraPartySlot) ? 1 : 0));
   const partyHasRoom = () => R.party.length < partySlots();
   const hasSpecies = (id) => R.party.some((m) => m.species === id);
 
   /** 이 막에서 만날 수 있는 야생 종 */
-  const catchablesHere = () => actOf(R.act).catchable.filter((id) => !hasSpecies(id));
+  const catchablesHere = () => (isMulti()
+    ? actOf(R.act).catchable.slice()
+    : actOf(R.act).catchable.filter((id) => !hasSpecies(id)));
 
   function catchPokemon(speciesId) {
+    // 멀티: 자리는 안 나지만 기술은 배운다 — ? 방이 통째로 죽지 않게
+    if (isMulti()) {
+      if (!POKEMON[speciesId]) return false;
+      for (const cid of POKEMON[speciesId].cards) R.deck.push(makeCard(cid));
+      return true;
+    }
     if (!partyHasRoom() || hasSpecies(speciesId)) return false;
     const m = createMember(speciesId);
     m.maxHp += sumField(R.relics, 'maxHpBonus');
@@ -189,14 +233,15 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
    */
   const actMul = (kind) => {
     const a = actOf(R.act);
+    const pl = scaleFor(R.players.length);
     // 보스는 램프를 안 받는다. 어차피 막 꼭대기에만 있어서 진행도가 늘 1이고,
     // 거기에 램프까지 곱하면 수치가 두 번 올라 벽이 된다 — 그렇게 뒀더니
     // 24판 중 16판이 1막 보스에서 끝났다. 보스 수치는 enemies.js 에 "막
     // 마지막에 만나는 것" 기준으로 적혀 있으니 막 배율만 곱한다.
     const p = kind === 'BOSS' ? 0 : Math.min(1, R.visitedFloors / Math.max(1, a.floors - 1));
     return {
-      hpMul: a.hpMul * (1 + (a.hpRamp ?? 0) * p),
-      dmgMul: a.dmgMul * (1 + (a.dmgRamp ?? 0) * p),
+      hpMul: a.hpMul * (1 + (a.hpRamp ?? 0) * p) * pl.hp,
+      dmgMul: a.dmgMul * (1 + (a.dmgRamp ?? 0) * p) * pl.dmg,
     };
   };
 
@@ -282,6 +327,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     // 진행
     options, travelTo, rollEncounter, rollCardReward, goldReward, rollShop,
     actMul, advanceAct, act: () => actOf(R.act), actCount: ACT_COUNT,
+    isMulti, asPlayer, playerCount: () => R.players.length,
     pickEvent: () => {
       const id = pickEvent(streams.event, R.eventsSeen);
       R.eventsSeen.push(id);

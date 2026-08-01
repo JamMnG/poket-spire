@@ -59,7 +59,11 @@ export function relicIcon(id, size = 40) {
 }
 
 // ══ 전투 보상 ═══════════════════════════════════════════════
-export function showReward(run, { gold, cardIds, relicId }, onDone) {
+/**
+ * @param onCard 멀티용. 카드를 고르면 여기로 알린다 — 덱에 넣는 일은
+ *               부르는 쪽(main.js)이 확정된 행동을 받고 나서 한다.
+ */
+export function showReward(run, { gold, cardIds, relicId, waitFor = false, team = null }, onDone, onCard = null) {
   const R = run.state;
   const taken = { gold: false, card: false, relic: false };
 
@@ -77,7 +81,7 @@ export function showReward(run, { gold, cardIds, relicId }, onDone) {
       onclick: () => {
         if (taken.card) return;
         showCardPick(cardIds, '배울 기술을 고른다', (id) => {
-          if (id) run.addCard(id);
+          if (onCard) onCard(id); else if (id) run.addCard(id);
           taken.card = true;
           rebuild();
         }, { skippable: true });
@@ -102,14 +106,39 @@ export function showReward(run, { gold, cardIds, relicId }, onDone) {
 
     open(
       title('전투에서 이겼다'),
-      sub('가져갈 것을 고른다.'),
+      sub(team ? '돈과 도구는 파티가 나눠 가졌다. 기술은 각자 고른다.' : '가져갈 것을 고른다.'),
+      // 멀티: 팀 몫은 이미 들어갔으므로 결과만 보여 준다
+      team ? el('div.act-gain', {}, [el('div', {
+        html: `돈 <b>+${team.gold}</b>${team.relicId ? ` · <b>${RELICS[team.relicId].ko}</b>` : ''}`,
+      })]) : null,
       ...items,
       actions(el('button.btn.btn-primary.btn-lg', {
-        text: allTaken ? '지도로' : '남기고 지도로', onclick: () => { closeOverlay(); onDone(); },
+        // 멀티에서는 카드를 고르기 전에는 넘어갈 수 없다. 안 고른 채로
+        // 넘어가면 다른 사람들이 영영 기다리게 된다.
+        text: waitFor ? (taken.card ? '다 골랐다' : '기술을 먼저 고른다')
+          : (allTaken ? '지도로' : '남기고 지도로'),
+        disabled: waitFor && !taken.card,
+        onclick: () => { closeOverlay(); onDone(); },
       })),
     );
   }
   rebuild();
+}
+
+// ══ 알림 · 기다림 ═══════════════════════════════════════════
+export function showNotice(heading, text, onDone) {
+  open(
+    title(heading),
+    sub(text),
+    actions(el('button.btn.btn-primary.btn-lg', {
+      text: '확인', onclick: () => { closeOverlay(); onDone?.(); },
+    })),
+  );
+}
+
+/** 남을 기다리는 동안 — 버튼이 없다. 다음 행동이 오면 화면이 알아서 넘어간다 */
+export function showWaiting(text) {
+  open(title('잠시만'), sub(text), el('div.waiting-dots', { html: '<span></span><span></span><span></span>' }));
 }
 
 // ══ 카드 고르기 (보상·상점 공용) ════════════════════════════
