@@ -30,6 +30,9 @@ const ROOM_TIP = {
 
 export function renderMap(run, onPick) {
   const { map, currentNode } = run.state;
+  const act = run.act();
+  const head = document.querySelector('.map-head h2');
+  if (head) head.textContent = `${act.n}막 · ${act.name}`;
   const nodesEl = $('#map-nodes');
   const canvas = $('#map-canvas');
 

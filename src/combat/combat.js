@@ -40,7 +40,7 @@ let enemyUid = 0;
  * @param onChange   상태가 바뀔 때마다 (UI 리렌더)
  * @param onFx       연출 이벤트
  */
-export function createCombat({ party, deckCards, relics = [], encounter, rng, onChange, onFx, speed = 1 }) {
+export function createCombat({ party, deckCards, relics = [], encounter, rng, onChange, onFx, speed = 1, hpMul = 1, dmgMul = 1 }) {
   // 화면 쪽 콜백은 엔진 안에서 동기로 불린다. 거기서 난 예외가 그대로
   // 올라오면 전투 진행이 통째로 멈추므로(예전에 그렇게 판이 굳었다),
   // 연출이 실패하더라도 규칙은 계속 돌게 여기서 끊는다.
@@ -54,10 +54,12 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
   };
 
   // ── 적 편성 ──────────────────────────────────────────────
+  // 적 수치는 1막 기준으로 적혀 있다. 막이 올라가면 여기서 배율을 곱한다.
+  // 종을 새로 60개 그리는 대신 같은 종을 다시 만나되 확실히 강해져 있게 한다.
   const enemies = encounter.ids.map((id, i) => {
     const def = enemyOf(id);
     const [lo, hi] = def.hp;
-    const maxHp = rng.range(lo, hi);
+    const maxHp = Math.round(rng.range(lo, hi) * hpMul);
     return {
       uid: ++enemyUid, slot: i, id, ko: def.ko, def,
       types: def.types.slice(),
@@ -259,6 +261,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
       defRank: memberIndex === S.active ? S.ranks.DEF : 0,   // 교체하면 랭크가 사라지므로
       burned: e.status.BURN > 0,
       paralyzed: e.status.PARA > 0,
+      powerMul: dmgMul,
     });
     return { ...r, hits: mv.hits || 1, total: r.dmg * (mv.hits || 1), move: mv };
   }
@@ -319,6 +322,14 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
         case 'block':
           S.block += op.amount;
           fx({ kind: 'block', side: 'player', value: op.amount });
+          break;
+        // 쌓아 둔 방어도를 대가로 쓰는 카드용. 방어도가 실제로 피해를 막게
+        // 고친 뒤로, "방어도만큼 때린다" 류가 막기와 때리기를 동시에 하는
+        // 이중 이득이 됐다(꼬부기 승률이 다른 스타터의 여섯 배였다).
+        // 값을 치르게 해서 둘 중 하나를 고르게 만든다.
+        case 'loseBlockRatio':
+          S.block = Math.floor(S.block * (1 - op.ratio));
+          notify();
           break;
         case 'status': {
           const t = op.to === 'self' ? null : (target && !target.dead ? target : aliveEnemies()[0]);
@@ -528,6 +539,14 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
   }
 
   function startPlayerTurn() {
+    // ★ 방어도는 **여기서** 사라진다. 예전에는 내 턴이 끝날 때 지웠는데,
+    //   그러면 적이 때리기도 전에 0이 되어 방어 카드가 게임 내내 아무 일도
+    //   하지 않았다. 방어도 20에 7 피해를 받으면 HP 가 그대로 7 깎였다.
+    //   막으라고 있는 것이 적 턴을 못 버티면 존재 이유가 없다.
+    //   (빛의점토가 있으면 그 비율만큼 다음 턴으로 넘어간다)
+    const keep = Math.max(0, ...relics.map((id) => RELICS[id]?.blockKeepRatio?.() || 0));
+    S.block = Math.floor(S.block * keep);
+
     S.turn++;
     S.phase = 'PLAYER';
     S.switchedThisTurn = false;
@@ -609,11 +628,8 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
     discardHand();
 
     // 턴이 끝나면 방어도가 사라진다 (빛의점토가 있으면 절반 남는다)
-    const keep = Math.max(0, ...relics.map((id) => RELICS[id]?.blockKeepRatio?.() || 0));
-    S.block = Math.floor(S.block * keep);
-
-    // ★ 뿌리박기는 방어도가 날아간 **뒤에** 준다. 앞에서 주면 바로 이 줄에
-    //   지워져서 카드가 아무것도 안 하는 것처럼 보인다.
+    // 뿌리박기 — 턴이 끝날 때 방어도를 준다. 이 방어도는 적 턴을 버텨야 하므로
+    // 여기서 주고, 지우는 건 다음 내 턴 시작 때 한다(startPlayerTurn 참고).
     if (S.powers.INGRAIN) {
       S.block += S.powers.INGRAIN;
       fx({ kind: 'block', side: 'player', value: S.powers.INGRAIN });
@@ -666,6 +682,7 @@ export function createCombat({ party, deckCards, relics = [], encounter, rng, on
           defRank: S.ranks.DEF,
           burned: e.status.BURN > 0,
           paralyzed: e.status.PARA > 0,
+          powerMul: dmgMul,
         });
         if (r.mult === 0) {
           say(`${active().ko}에게는 효과가 없다!`);           // '에게' 는 받침과 무관하다

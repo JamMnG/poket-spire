@@ -28,6 +28,13 @@ POKEMON = {
     'pikachu': 25, 'sandshrew': 27, 'vulpix': 37, 'zubat': 41, 'oddish': 43,
     'mankey': 56, 'primeape': 57, 'poliwag': 60, 'abra': 63, 'machop': 66,
     'geodude': 74, 'magnemite': 81, 'gastly': 92, 'onix': 95,
+    # 2막 · 달의 신전
+    'diglett': 50, 'paras': 46, 'golbat': 42, 'nidorino': 33,
+    'golduck': 55, 'marowak': 105, 'machoke': 67, 'gengar': 94,
+    # 3막 · 첨탑
+    'electabuzz': 125, 'magmar': 126, 'jynx': 124, 'scyther': 123,
+    'pinsir': 127, 'victreebel': 71, 'tentacruel': 73,
+    'gyarados': 130, 'charizard': 6, 'blastoise': 9, 'mewtwo': 150,
 }
 
 # 지닌 도구·UI 에 쓰는 아이템 스프라이트

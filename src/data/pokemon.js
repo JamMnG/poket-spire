@@ -15,14 +15,14 @@
 //   의도적으로 배치했다. 적 의도를 읽고 교체하는 플레이의 최고점이 이 셋이다.
 //
 // ── HP 기준 ──
-// 스타터는 54~64, 합류 종은 24~46. 처음엔 스타터를 40으로 뒀다가 1층에서
-// 두 턴 만에 죽었다 — 슬더스가 80으로 시작하는데 여기는 포켓몬 하나뿐이니
-// 사실상 그 절반이었던 것이다.
+// 스타터는 60~66, 1·2막 합류 종은 24~46, 3막 전용 종은 42~50.
+// 처음엔 스타터를 40으로 뒀다가 1층에서 두 턴 만에 죽었다 — 슬더스가
+// 80으로 시작하는데 여기는 포켓몬 하나뿐이니 사실상 그 절반이었던 것이다.
 //
-// ★ 스타터 HP는 **1막 적 구성에 대한 방어 상성**을 보정하는 손잡이다.
-//   1막은 땅·바위·비행이 많다. 불꽃인 파이리는 여기에 두 배로 맞아 제일
-//   불리하고, 풀/독인 이상해씨는 격투·독·벌레를 반감해 제일 유리하다.
-//   같은 HP로 두면 승률이 56% 대 94%까지 벌어져서, 그 차이를 HP로 되돌렸다.
+// ★ 스타터 HP는 상성 차이를 되돌리는 손잡이다. 1막은 땅·바위·비행이 많아
+//   불꽃인 파이리가 불리하고, 3막은 물이 많아 또 파이리가 불리하다.
+//   반대로 꼬부기는 3막에서 편하다. 그 차이를 HP로 조금 되돌려 놓는다.
+//   (숫자는 tools/balance.js 로 90판씩 돌려 맞췄다)
 //
 // ★ 이름·색은 원작을 참조한다. 도트는 원본을 옮긴 게 아니라 알아볼 특징만
 //   살려 새로 찍었다. 공개 배포·수익화하려면 이 파일과 pokemonSprites.js 를
@@ -35,7 +35,7 @@ export const POKEMON = {
   // signatures: 시작 덱에 들어가는 두 장. 한 장이 깔고 한 장이 거둔다.
   //             cards: 야생으로 만나 합류했을 때 덱에 섞이는 두 장.
   charmander: {
-    id: 'charmander', ko: '파이리', types: ['FIRE'], hp: 64,
+    id: 'charmander', ko: '파이리', types: ['FIRE'], hp: 70,
     body: '#f2803c', accent: '#ffd257', belly: '#f8e3bb',
     starter: true,
     signatures: ['ember', 'kindle'],          // 화상을 붙이고 → 화상만큼 때린다
@@ -44,7 +44,7 @@ export const POKEMON = {
     style: '쌓아서 태운다',
   },
   squirtle: {
-    id: 'squirtle', ko: '꼬부기', types: ['WATER'], hp: 66,
+    id: 'squirtle', ko: '꼬부기', types: ['WATER'], hp: 62,
     body: '#5aa8dc', accent: '#a8dcf0', belly: '#f2e2b8',
     starter: true,
     signatures: ['withdraw', 'shellstrike'],  // 방어도를 쌓고 → 방어도로 때린다
@@ -53,7 +53,7 @@ export const POKEMON = {
     style: '버티며 되받아친다',
   },
   bulbasaur: {
-    id: 'bulbasaur', ko: '이상해씨', types: ['GRASS', 'POISON'], hp: 54,
+    id: 'bulbasaur', ko: '이상해씨', types: ['GRASS', 'POISON'], hp: 60,
     body: '#63bc7a', accent: '#4f9e52', belly: '#bfe0a8',
     starter: true,
     signatures: ['leechseed', 'absorb'],      // 독을 얹고 → 빨아먹으며 버틴다
@@ -140,6 +140,41 @@ export const POKEMON = {
     body: '#b8c4d2', accent: '#d04030', belly: '#e0e8f0',
     cards: ['metalclaw', 'thundershock'],
     blurb: '내성이 열 가지가 넘는다. 독이 아예 통하지 않는다.',
+  },
+
+  // ── 3막에서만 만나는 종 ───────────────────────────────────
+  // 첨탑까지 올라온 값이다. HP도 카드도 앞 막 합류 종보다 확실히 세다.
+  // 여기서 파티를 한 번 더 갈아 끼울 수 있게 한 게 3막의 재미다 —
+  // 2막까지 데려온 애들은 이쯤이면 HP가 모자라 앞에 못 세운다.
+  scyther: {
+    id: 'scyther', ko: '스라크', types: ['BUG', 'FLYING'], hp: 46,
+    body: '#7ac86a', accent: '#e8e8f0', belly: '#c8e8b8',
+    cards: ['nightslash', 'airslash'],
+    blurb: '낫이 먼저 닿는다. 땅 기술이 통하지 않는다.',
+  },
+  pinsir: {
+    id: 'pinsir', ko: '쁘사이저', types: ['BUG'], hp: 50,
+    body: '#a08858', accent: '#3a3028', belly: '#d0b880',
+    cards: ['megahorn', 'swordsdance'],
+    blurb: '집게에 한 번 물리면 끝이다. 랭크를 올리고 한 방을 노린다.',
+  },
+  electabuzz: {
+    id: 'electabuzz', ko: '에레브', types: ['ELECTRIC'], hp: 44,
+    body: '#f0d040', accent: '#2a2a2a', belly: '#f8e880',
+    cards: ['thunderbolt', 'spark'],
+    blurb: '3막의 물·비행이 여기서 막힌다. 갸라도스 앞에 세워라.',
+  },
+  magmar: {
+    id: 'magmar', ko: '마그마', types: ['FIRE'], hp: 44,
+    body: '#e05840', accent: '#f0c040', belly: '#f8a878',
+    cards: ['firefang', 'flamethrower'],
+    blurb: '불꽃이 꺼지지 않는다. 화상을 얹어 두면 뒤가 편하다.',
+  },
+  jynx: {
+    id: 'jynx', ko: '루주라', types: ['ICE', 'PSYCHIC'], hp: 42,
+    body: '#d84878', accent: '#f0e070', belly: '#f0d8b0',
+    cards: ['icebeam', 'calmmind'],
+    blurb: '얼리고 홀린다. 격투와 드래곤 앞에서 강하다.',
   },
 };
 

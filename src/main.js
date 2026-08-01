@@ -18,6 +18,9 @@ import { RELICS, availableRelics } from './data/relics.js';
 import { typeKo, typeColor } from './data/types.js';
 import { monImg } from './render/pokemonSprites.js';
 import { randomSeed } from './core/rng.js';
+import { initStage } from './ui/stage.js';
+
+initStage();
 
 let run = null;
 let combat = null;
@@ -36,6 +39,7 @@ function renderTopbars() {
   const R = run.state;
   const lead = run.activeMember();
   const floor = R.currentNode ? R.map.nodes[R.currentNode].floor + 1 : 0;
+  const act = run.act();
 
   for (const bar of document.querySelectorAll('[data-topbar]')) {
     mount(bar,
@@ -49,7 +53,7 @@ function renderTopbars() {
       el('div.tb-spacer'),
       el('button.tb-btn', { text: `파티 ${R.party.length}/${run.partySlots()}`, onclick: () => OV.showParty(run) }),
       el('button.tb-btn', { text: `덱 ${R.deck.length}`, onclick: () => OV.showDeck(run) }),
-      el('div.tb-floor', { text: floor ? `${floor}층` : '출발' }),
+      el('div.tb-floor', { text: `${act.n}막 ${floor ? floor + '층' : '출발'}` }),
       el('div.tb-seed', { text: R.seed }),
     );
   }
@@ -147,7 +151,7 @@ function handleRequest() {
     OV.showDeckPick(run, '강화할 기술을 고른다', (c) => !c.upgraded, (inst) => {
       if (inst) run.upgradeCard(inst.uid);
       refreshMap();
-    }, { cancellable: true });
+    }, { cancellable: true, showUpgrade: true });
   } else if (req.kind === 'REMOVE') {
     OV.showDeckPick(run, '잊을 기술을 고른다', null, (inst) => {
       if (inst) run.removeCard(inst.uid);
@@ -164,11 +168,13 @@ function handleRequest() {
 function startCombat(roomType) {
   const encounter = run.rollEncounter(roomType);
 
+  const { hpMul, dmgMul } = run.actMul(roomType);
   combat = createCombat({
     party: run.state.party,
     deckCards: run.state.deck,
     relics: run.state.relics,
     encounter,
+    hpMul, dmgMul,
     rng: run.state.streams.combat,
     onChange: () => { view?.render(); renderTopbars(); },
     onFx: (e) => view?.playFx(e),
@@ -191,9 +197,14 @@ function finishCombat(result, roomType) {
   }
 
   if (roomType === 'BOSS') {
-    run.state.won = true;
-    run.grantRandomRelic(['BOSS']);       // 다음 막으로 이어질 자리
-    OV.showResult(run, true, backToTitle);
+    run.grantRandomRelic(['BOSS']);
+    const act = run.act();
+    const more = run.advanceAct();        // 다음 막이 있으면 지도를 새로 깐다
+    if (more) {
+      OV.showActClear(run, act, run.act(), () => { renderTopbars(); refreshMap(); });
+    } else {
+      OV.showResult(run, true, backToTitle);
+    }
     return;
   }
 

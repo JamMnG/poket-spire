@@ -27,6 +27,13 @@ function open(...children) {
   body().scrollTop = 0;
 }
 
+/** 받침에 맞는 조사를 고른다 — "상록의 숲 을(를)" 같은 표기를 안 쓰려고 */
+function josa(word, withBatchim, without) {
+  const last = word.charCodeAt(word.length - 1);
+  if (last < 0xac00 || last > 0xd7a3) return without;   // 한글이 아니면 그냥
+  return (last - 0xac00) % 28 ? withBatchim : without;
+}
+
 const title = (t) => el('div.ov-title', { text: t });
 const sub = (t) => el('div.ov-sub', { html: t });
 const actions = (...btns) => el('div.ov-actions', {}, btns.filter(Boolean));
@@ -119,14 +126,54 @@ export function showCardPick(cardIds, heading, onPick, opts = {}) {
   );
 }
 
+
+// ══ 막 클리어 → 다음 막 ═════════════════════════════════════
+export function showActClear(run, cleared, next, onDone) {
+  const R = run.state;
+  open(
+    el('div.result-big.result-win', { text: `${cleared.n}막 돌파` }),
+    sub(`<b>${cleared.name}</b>${josa(cleared.name, '을', '를')} 넘었다.`),
+    el('div.act-gain', {}, [
+      el('div', { html: `파티 전원 최대 HP <b>+12</b> · 완전 회복 · 돈 <b>+120</b>` }),
+    ]),
+    el('div.ov-title', { style: { marginTop: '18px', fontSize: '20px' }, text: `${next.n}막 · ${next.name}` }),
+    sub(next.blurb + '<br>여기서부터 적이 확실히 강해진다.'),
+    el('div.party-panel', {}, R.party.map((m) => el('div.party-card', {}, [
+      monImg(m.species, POKEMON[m.species], 4, { alt: m.ko }),
+      el('div.p-name', { text: m.ko }),
+      el('div.reward-sub', { text: `HP ${m.hp}/${m.maxHp}` }),
+    ]))),
+    actions(el('button.btn.btn-primary.btn-lg', { text: '올라간다', onclick: () => { closeOverlay(); onDone(); } })),
+  );
+}
+
 // ══ 덱에서 한 장 고르기 (강화·제거) ═════════════════════════
 export function showDeckPick(run, heading, filter, onPick, opts = {}) {
   const list = run.state.deck.filter(filter || (() => true));
+
+  // 강화 화면에서는 **강화하면 어떻게 되는지**를 나란히 보여 준다.
+  // 이름 옆에 + 만 붙여 놓으면 무엇이 얼마나 좋아지는지 알 수가 없어서,
+  // 무엇을 고를지 정할 근거가 화면에 없었다.
+  const card = (inst) => {
+    if (!opts.showUpgrade) {
+      return cardEl(inst, { onclick: () => { closeOverlay(); onPick(inst); } });
+    }
+    const after = { ...inst, upgraded: true };
+    return el('div.upg-pair', { onclick: () => { closeOverlay(); onPick(inst); } }, [
+      el('div.upg-side', {}, [el('div.upg-lab', { text: '지금' }), cardEl(inst)]),
+      el('div.upg-arrow', { text: '→' }),
+      el('div.upg-side.is-after', {}, [el('div.upg-lab.is-after', { text: '강화 후' }), cardEl(after)]),
+    ]);
+  };
+
   open(
     title(heading),
-    sub(`덱 ${run.state.deck.length}장 중 ${list.length}장을 고를 수 있다.`),
-    el('div.deck-grid', {}, list.map((inst) =>
-      cardEl(inst, { onclick: () => { closeOverlay(); onPick(inst); } }))),
+    sub(opts.showUpgrade
+      ? `덱 ${run.state.deck.length}장 중 강화할 수 있는 ${list.length}장. 바뀌는 부분이 오른쪽에 보인다.`
+      : `덱 ${run.state.deck.length}장 중 ${list.length}장을 고를 수 있다.`),
+    list.length
+      ? el(opts.showUpgrade ? 'div.upg-grid' : 'div.deck-grid', {}, list.map(card))
+      : el('div.ov-sub', { text: '고를 수 있는 카드가 없다.' }),
     actions(opts.cancellable && el('button.btn.btn-ghost', {
       text: '그만둔다', onclick: () => { closeOverlay(); onPick(null); },
     })),
@@ -188,7 +235,7 @@ export function showRest(run, onDone) {
     if (inst) run.upgradeCard(inst.uid);
     if (!inst) { showRest(run, onDone); return; }     // 취소하면 되돌아온다
     onDone();
-  }, { cancellable: true });
+  }, { cancellable: true, showUpgrade: true });
 
   open(
     title('포켓몬센터'),

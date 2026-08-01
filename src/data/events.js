@@ -7,7 +7,6 @@
 //
 // 선택지 effect(R) 는 결과 문구를 돌려준다. R 은 run.js 가 넘기는 창구다.
 // ─────────────────────────────────────────────────────────────
-import { WILD_CATCHABLE } from './enemies.js';
 import { POKEMON } from './pokemon.js';
 
 export const EVENTS = {
@@ -16,13 +15,20 @@ export const EVENTS = {
     ko: '풀숲이 흔들린다',
     text: '풀이 부스럭거린다. 야생 포켓몬이 이쪽을 보고 있다.',
     weight: 3,
-    setup: (R) => ({ species: R.rng.pick(WILD_CATCHABLE.filter((s) => !R.hasSpecies(s))) || R.rng.pick(WILD_CATCHABLE) }),
+    // 막마다 만나는 종이 다르다 — 2·3막에서 파티를 새로 짤 여지를 준다
+    setup: (R) => {
+      const pool = R.catchablesHere();
+      return { species: pool.length ? R.rng.pick(pool) : null };
+    },
     choices: [
       {
         label: '몬스터볼을 던진다',
-        desc: (R, d) => `${POKEMON[d.species].ko}을(를) 잡는다. 파티에 들어오고 전용 기술 2장이 덱에 섞인다.`,
-        enabled: (R) => R.partyHasRoom(),
+        desc: (R, d) => (d.species
+          ? `${POKEMON[d.species].ko}을(를) 잡는다. 파티에 들어오고 전용 기술 2장이 덱에 섞인다.`
+          : '더 잡을 만한 포켓몬이 없다.'),
+        enabled: (R, d) => R.partyHasRoom() && !!d.species,
         effect: (R, d) => {
+          if (!d.species) return '풀숲은 이미 조용했다.';
           if (R.hasSpecies(d.species)) return `이미 ${POKEMON[d.species].ko}이(가) 있다. 그냥 보내 줬다.`;
           R.catchPokemon(d.species);
           return `좋아! ${POKEMON[d.species].ko}을(를) 잡았다!`;

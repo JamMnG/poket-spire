@@ -75,8 +75,10 @@ export function enemyDamage({
   defRank = 0,        // 플레이어 방어 랭크
   burned = false,     // 적이 화상이면 약해진다
   paralyzed = false,  // 적이 마비면 굼뜨다
+  powerMul = 1,       // 막 배율 (acts.js)
 }) {
   if (!power) return { dmg: 0, mult: 1 };
+  power *= powerMul;
 
   const stab = stabBonus(moveType, attackerTypes);
   const typeMul = moveType ? defenseMultiplier(moveType, defenderTypes) : 1;

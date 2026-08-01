@@ -33,8 +33,9 @@ export const PATHS = 6;
  * 반환: { nodes: [[node,...] × FLOORS+1], start: [노드id...] }
  * 노드: { id, floor, col, type, next: [노드id...] }
  */
-export function generateMap(rng) {
-  const grid = Array.from({ length: FLOORS }, () => new Array(COLUMNS).fill(null));
+export function generateMap(rng, floors = FLOORS) {
+  const FL = floors;
+  const grid = Array.from({ length: FL }, () => new Array(COLUMNS).fill(null));
   const nodeAt = (f, c) => grid[f]?.[c] || null;
 
   const ensure = (f, c) => {
@@ -55,7 +56,7 @@ export function generateMap(rng) {
     firstCols.push(col);
 
     ensure(0, col);
-    for (let f = 0; f < FLOORS - 1; f++) {
+    for (let f = 0; f < FL - 1; f++) {
       const here = ensure(f, col);
       // 좌·중·우 중에서 고르되 지도 밖으로는 안 나간다
       const options = [ col - 1, col, col + 1 ].filter((c) => c >= 0 && c < COLUMNS);
@@ -102,8 +103,8 @@ export function generateMap(rng) {
   for (const n of all) {
     // 고정 층
     if (n.floor === 0) { n.type = 'MONSTER'; continue; }
-    if (n.floor === 8) { n.type = 'TREASURE'; continue; }
-    if (n.floor === FLOORS - 1) { n.type = 'REST'; continue; }
+    if (n.floor === Math.floor(FL / 2) - 1) { n.type = 'TREASURE'; continue; }
+    if (n.floor === FL - 1) { n.type = 'REST'; continue; }
 
     const table = tableFor(n.floor);
     let pick, guard = 0;
@@ -118,15 +119,15 @@ export function generateMap(rng) {
   }
 
   // ── 3. 보스 ──────────────────────────────────────────────
-  const boss = { id: 'boss', floor: FLOORS, col: 3, type: 'BOSS', next: [], prev: [] };
-  for (const n of grid[FLOORS - 1].filter(Boolean)) {
+  const boss = { id: 'boss', floor: FL, col: 3, type: 'BOSS', next: [], prev: [] };
+  for (const n of grid[FL - 1].filter(Boolean)) {
     n.next.push('boss');
     boss.prev.push(n.id);
   }
   byId.set('boss', boss);
 
   return {
-    floors: FLOORS,
+    floors: FL,
     columns: COLUMNS,
     nodes: Object.fromEntries([...byId].map(([k, v]) => [k, v])),
     start: grid[0].filter(Boolean).map((n) => n.id),

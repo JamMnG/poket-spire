@@ -53,19 +53,31 @@ export const CARDS = {
   // ── 스타터 시그니처 ───────────────────────────────────────
   ember: {
     ko: '불꽃세례', type: 'FIRE', kind: A, rarity: B, target: 'ENEMY',
-    v: { cost: 1, dmg: 7, burn: 2 }, vUp: { dmg: 10, burn: 3 },
+    // ★ 화상·독 피해는 타입표를 타지 않는다(status.js). 파이리와 이상해씨가
+    //   약한 이유는 자속 배율이 낮아서인데(3막 평균 1.13 · 0.83 대 꼬부기
+    //   1.46), 그 손해를 타입과 무관한 상태이상 쪽으로 되돌려 준다.
+    v: { cost: 1, dmg: 6, burn: 4 }, vUp: { dmg: 9, burn: 5 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'BURN', amount: v.burn }],
     text: (v) => `${v.dmg}의 피해. 화상 ${v.burn}.`,
   },
   withdraw: {
     ko: '껍질에숨기', type: null, kind: S, rarity: B, target: 'SELF',
-    v: { cost: 1, blk: 8, def: 1 }, vUp: { blk: 12, def: 1 },
-    build: (v) => [{ op: 'block', amount: v.blk }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }],
-    text: (v) => `방어도 ${v.blk}. 방어 랭크 +${v.def}.`,
+    // ★ 강화 전에는 방어 랭크를 주지 않는다. 방어 랭크는 전투 내내 남고
+    //   겹치면 받는 피해가 2/(2+n) 로 줄어드는데, 1코 기본 카드가 방어도
+    //   여덟에 그걸 같이 주니 두 장만 써도 피해가 절반이 됐다. 90판에서
+    //   꼬부기만 13승, 나머지 스타터는 2승씩이었다. 랭크는 강화 보상으로.
+    v: { cost: 1, blk: 9, def: 0 }, vUp: { blk: 12, def: 1 },
+    build: (v) => [
+      { op: 'block', amount: v.blk },
+      ...(v.def ? [{ op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }] : []),
+    ],
+    text: (v) => (v.def ? `방어도 ${v.blk}. 방어 랭크 +${v.def}.` : `방어도 ${v.blk}.`),
   },
   leechseed: {
     ko: '씨뿌리기', type: 'GRASS', kind: A, rarity: B, target: 'ENEMY',
-    v: { cost: 1, dmg: 5, psn: 3 }, vUp: { dmg: 7, psn: 4 },
+    // 독 5 는 5+4+3+2+1 = 15 를 타입과 무관하게 뽑는다. 풀·독은 이 게임
+    //   적 구성 상대로 자속 배율이 제일 나쁘므로, 이상해씨의 딜은 여기서 온다
+    v: { cost: 1, dmg: 4, psn: 5 }, vUp: { dmg: 6, psn: 7 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'POISON', amount: v.psn }],
     text: (v) => `${v.dmg}의 피해. 독 ${v.psn}.`,
   },
@@ -79,7 +91,7 @@ export const CARDS = {
     ko: '불쏘시개', type: 'FIRE', kind: A, rarity: B, target: 'ENEMY',
     // 계수 3으로 뒀더니 화상 6에서 63이 나왔다 — 2코 화염방사보다 센 1코
     // 기본 카드였다. 화상 4쯤에서 12, 즉 좋은 커먼 정도로 내렸다.
-    v: { cost: 1, base: 4, mult: 2, burn: 1 }, vUp: { base: 6, mult: 3, burn: 1 },
+    v: { cost: 1, base: 5, mult: 2, burn: 2 }, vUp: { base: 7, mult: 3, burn: 2 },
     build: (v) => [
       { op: 'damageScaled', base: v.base, per: 'BURN', mult: v.mult },
       { op: 'status', status: 'BURN', amount: v.burn },
@@ -88,17 +100,24 @@ export const CARDS = {
   },
   shellstrike: {
     ko: '껍질치기', type: 'WATER', kind: A, rarity: B, target: 'ENEMY',
-    // ★ 처음엔 방어도의 '절반'이었다. 그랬더니 방어를 쌓을 이유가 없어서
-    //   꼬부기의 소개 문구("쌓아 둔 방어도가 그대로 공격이 된다")가 거짓말이
-    //   됐다 — 방어를 더 쌓는 봇이 오히려 승률이 반 토막 났다.
-    //   전부로 바꿔서, 어차피 막아야 하는 방어도가 그대로 딜이 되게 했다.
-    v: { cost: 1, base: 3, mult: 1 }, vUp: { base: 6, mult: 1 },
-    build: (v) => [{ op: 'damageScaled', base: v.base, per: 'BLOCK', mult: v.mult }],
-    text: (v) => `${v.base}의 피해. 지금 방어도만큼 더 준다.`,
+    // ★ 이 카드 하나가 꼬부기를 두 번 흔들었다.
+    //   처음엔 방어도의 '절반'만 얹었다. 그랬더니 방어를 쌓을 이유가 없어서
+    //   소개 문구("쌓아 둔 방어도가 그대로 공격이 된다")가 거짓말이 됐다 —
+    //   방어를 더 쌓는 봇이 오히려 승률이 반 토막 났다. 그래서 전부로 바꿨다.
+    //   그런데 그 측정은 **방어도가 적 턴 전에 지워지던 버그** 위에서 한
+    //   것이었다. 버그를 고치자 방어도가 막기도 하고 딜도 되는 이중 이득이
+    //   되어, 90판에서 꼬부기 18승 · 파이리 3승 · 이상해씨 4승이 나왔다.
+    //   그래서 값을 붙였다 — 방어도 전부를 얹되, 절반을 내놓는다.
+    v: { cost: 1, base: 4, mult: 1 }, vUp: { base: 7, mult: 1 },
+    build: (v) => [
+      { op: 'damageScaled', base: v.base, per: 'BLOCK', mult: v.mult },
+      { op: 'loseBlockRatio', ratio: 0.5 },
+    ],
+    text: (v) => `${v.base}의 피해. 지금 방어도만큼 더 준다. 그리고 방어도의 절반을 잃는다.`,
   },
   absorb: {
     ko: '흡수', type: 'GRASS', kind: A, rarity: B, target: 'ENEMY',
-    v: { cost: 1, dmg: 6, ratio: 1 }, vUp: { dmg: 9, ratio: 1 },
+    v: { cost: 1, dmg: 7, ratio: 1 }, vUp: { dmg: 10, ratio: 1 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'drain', ratio: v.ratio }],
     text: (v) => `${v.dmg}의 피해. 준 피해만큼 HP를 회복한다.`,
   },

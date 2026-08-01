@@ -193,7 +193,7 @@ export const ENEMIES = {
 
   // ══ 1막 · 보스 ════════════════════════════════════════════
   beedrill: {
-    ko: '비주기', types: ['BUG', 'POISON'], hp: [105, 105], boss: true, scale: 1.5,
+    ko: '비주기', types: ['BUG', 'POISON'], hp: [95, 95], boss: true, scale: 1.5,
     body: '#f0c43c', accent: '#3a3028',
     moves: {
       twineedle:   { ko: '더블니들', intent: 'ATTACK', type: 'BUG', power: 5, hits: 2, status: { kind: 'POISON', amount: 2 } },
@@ -211,47 +211,287 @@ export const ENEMIES = {
       return rng.chance(0.5) ? 'twineedle' : (rng.chance(0.5) ? 'poisonjab' : 'furyattack');
     },
   },
+
+  // ══ 2막 · 달의 신전 ═══════════════════════════════════════
+  // 여기 적힌 수치도 1막 기준이다. 2·3막에서는 acts.js 의 배율이 곱해진다.
+  diglett: {
+    ko: '디그다', types: ['GROUND'], hp: [18, 22],
+    body: '#b07a4a', accent: '#f2c9a0',
+    moves: {
+      scratch:    { ko: '할퀴기', intent: 'ATTACK', type: 'NORMAL', power: 5 },
+      sandattack: { ko: '모래뿌리기', intent: 'DEBUFF', rank: { stat: 'ATK', delta: -1, to: 'player' } },
+      digmove:    { ko: '구멍파기', intent: 'ATTACK', type: 'GROUND', power: 7 },
+    },
+    // 셋이 몰려 나온다. 하나하나는 약하지만 전체기가 없으면 성가시다
+    nextMove: (self, rng) => (self.turn === 1 ? 'sandattack' : rng.chance(0.5) ? 'digmove' : 'scratch'),
+  },
+
+  paras: {
+    ko: '파라스', types: ['BUG', 'GRASS'], hp: [27, 32],
+    body: '#e2703c', accent: '#d84a3a',
+    moves: {
+      absorb:    { ko: '흡수', intent: 'ATTACK', type: 'GRASS', power: 6, heal: 5 },
+      stunspore: { ko: '저리가루', intent: 'DEBUFF', status: { kind: 'PARA', amount: 2 } },
+      scratch:   { ko: '할퀴기', intent: 'ATTACK', type: 'BUG', power: 6 },
+    },
+    nextMove: (self, rng) => (self.turn % 3 === 1 ? 'stunspore' : rng.chance(0.5) ? 'absorb' : 'scratch'),
+  },
+
+  golbat: {
+    ko: '골뱃', types: ['POISON', 'FLYING'], hp: [46, 54],
+    body: '#5a6ec0', accent: '#3f4d90',
+    moves: {
+      leechlife:  { ko: '흡혈', intent: 'ATTACK', type: 'BUG', power: 8, heal: 7 },
+      wingattack: { ko: '날개치기', intent: 'ATTACK', type: 'FLYING', power: 9 },
+      screech:    { ko: '초음파', intent: 'DEBUFF', rank: { stat: 'DEF', delta: -1, to: 'player' } },
+    },
+    nextMove: (self, rng) => (self.turn === 1 ? 'screech'
+      : rng.chance(0.45) ? 'leechlife' : 'wingattack'),
+  },
+
+  nidorino: {
+    ko: '니드리노', types: ['POISON'], hp: [50, 58],
+    body: '#9b52a8', accent: '#6b2c88',
+    moves: {
+      hornattack:  { ko: '뿔찌르기', intent: 'ATTACK', type: 'NORMAL', power: 9 },
+      poisonjab:   { ko: '독찌르기', intent: 'ATTACK', type: 'POISON', power: 8, status: { kind: 'POISON', amount: 3 } },
+      focusenergy: { ko: '기충전', intent: 'BUFF', rank: { stat: 'ATK', delta: 1, to: 'self' } },
+    },
+    nextMove: (self, rng) => (self.turn === 1 ? 'focusenergy'
+      : rng.chance(0.5) ? 'poisonjab' : 'hornattack'),
+  },
+
+  machop: {
+    ko: '알통몬', types: ['FIGHT'], hp: [40, 46],
+    body: '#9aa4b8', accent: '#d86850',
+    moves: {
+      karatechop: { ko: '태권당수', intent: 'ATTACK', type: 'FIGHT', power: 9 },
+      // 먼저 몸을 키우고 때린다 — 첫 턴에 안 끊으면 뒤가 아프다
+      focusenergy: { ko: '기충전', intent: 'BUFF', rank: { stat: 'ATK', delta: 1, to: 'self' } },
+      lowkick:    { ko: '안다리걸기', intent: 'ATTACK_DEBUFF', type: 'FIGHT', power: 7, rank: { stat: 'DEF', delta: -1, to: 'player' } },
+    },
+    nextMove: (self, rng) => (self.turn === 1 ? 'focusenergy'
+      : rng.chance(0.35) ? 'lowkick' : 'karatechop'),
+  },
+
+  gastlyE: {
+    ko: '고오스', types: ['GHOST', 'POISON'], hp: [32, 38],
+    body: '#6a5a9c', accent: '#3a3060', sprite: 'gastly',
+    moves: {
+      lick:       { ko: '핥기', intent: 'ATTACK', type: 'GHOST', power: 7, status: { kind: 'PARA', amount: 1 } },
+      nightshade: { ko: '나이트헤드', intent: 'ATTACK', type: 'GHOST', power: 8 },
+      hypnosis:   { ko: '최면술', intent: 'DEBUFF', status: { kind: 'PARA', amount: 2 } },
+    },
+    nextMove: (self, rng) => (rng.chance(0.3) ? 'hypnosis' : rng.chance(0.5) ? 'lick' : 'nightshade'),
+  },
+
+  // ── 2막 엘리트 ────────────────────────────────────────────
+  golduck: {
+    ko: '골덕', types: ['WATER'], hp: [105, 105], elite: true, scale: 1.2,
+    body: '#4a8ad0', accent: '#e0c060',
+    moves: {
+      surf:      { ko: '파도타기', intent: 'ATTACK', type: 'WATER', power: 13 },
+      confusion: { ko: '염동력', intent: 'ATTACK_DEBUFF', type: 'PSYCHIC', power: 10, rank: { stat: 'ATK', delta: -1, to: 'player' } },
+      screech:   { ko: '울음소리', intent: 'DEBUFF', rank: { stat: 'DEF', delta: -2, to: 'player' } },
+      recovermv: { ko: '회복', intent: 'DEFEND', block: 14, heal: 10 },
+    },
+    nextMove: (self) => (['confusion', 'surf', 'screech', 'surf', 'recovermv'][(self.turn - 1) % 5]),
+  },
+
+  marowak: {
+    ko: '텅구리', types: ['GROUND'], hp: [100, 100], elite: true, scale: 1.15,
+    body: '#c8a878', accent: '#e8e0d0',
+    moves: {
+      bonemerang: { ko: '본메랑', intent: 'ATTACK', type: 'GROUND', power: 8, hits: 2 },
+      thrash:     { ko: '박치기', intent: 'ATTACK', type: 'NORMAL', power: 12 },
+      // 뼈를 세워 막으며 때린다 — 오래 끌수록 손해다
+      bonerush:   { ko: '뼈다귀치기', intent: 'ATTACK_DEFEND', type: 'GROUND', power: 10, block: 10 },
+    },
+    nextMove: (self, rng) => (self.turn % 3 === 0 ? 'bonerush'
+      : rng.chance(0.55) ? 'bonemerang' : 'thrash'),
+  },
+
+  machoke: {
+    ko: '근육몬', types: ['FIGHT'], hp: [112, 112], elite: true, scale: 1.2,
+    body: '#8a94a8', accent: '#d05840',
+    moves: {
+      karatechop:  { ko: '태권당수', intent: 'ATTACK', type: 'FIGHT', power: 11 },
+      bulkup:      { ko: '벌크업', intent: 'BUFF', rank: { stat: 'ATK', delta: 1, to: 'self' }, block: 8 },
+      seismictoss: { ko: '지구던지기', intent: 'ATTACK', type: 'FIGHT', power: 16 },
+      lowkick:     { ko: '안다리걸기', intent: 'ATTACK_DEBUFF', type: 'FIGHT', power: 8, rank: { stat: 'DEF', delta: -1, to: 'player' } },
+    },
+    nextMove: (self) => (['bulkup', 'karatechop', 'lowkick', 'seismictoss'][(self.turn - 1) % 4]),
+  },
+
+  // ── 2막 보스 ──────────────────────────────────────────────
+  gengar: {
+    ko: '팬텀', types: ['GHOST', 'POISON'], hp: [195, 195], boss: true, scale: 1.4,
+    body: '#6a4a9c', accent: '#3a2060',
+    moves: {
+      shadowball: { ko: '섀도볼', intent: 'ATTACK_DEBUFF', type: 'GHOST', power: 13, rank: { stat: 'DEF', delta: -1, to: 'player' } },
+      hypnosis:   { ko: '최면술', intent: 'DEBUFF', status: { kind: 'PARA', amount: 3 } },
+      sludgebomb: { ko: '오물폭탄', intent: 'ATTACK', type: 'POISON', power: 12, status: { kind: 'POISON', amount: 4 } },
+      curse:      { ko: '저주', intent: 'BUFF', rank: { stat: 'ATK', delta: 1, to: 'self' }, block: 10 },
+      // 고스트라 노말·격투는 아예 통하지 않는다. 파티에 답이 없으면 벽이 된다
+      dreameater: { ko: '꿈먹기', intent: 'ATTACK', type: 'PSYCHIC', power: 24, heal: 10 },
+    },
+    nextMove: (self, rng) => {
+      const half = self.hp <= self.maxHp / 2;
+      if (self.turn === 1) return 'hypnosis';
+      if (self.turn % 4 === 0) return half ? 'dreameater' : 'curse';
+      return rng.chance(0.5) ? 'shadowball' : 'sludgebomb';
+    },
+  },
+
+  // ══ 3막 · 첨탑 ════════════════════════════════════════════
+  electabuzz: {
+    ko: '에레브', types: ['ELECTRIC'], hp: [46, 52],
+    body: '#f0c419', accent: '#2b2118',
+    moves: {
+      thunderpunch: { ko: '번개펀치', intent: 'ATTACK', type: 'ELECTRIC', power: 10, status: { kind: 'PARA', amount: 1 } },
+      swift:        { ko: '스피드스타', intent: 'ATTACK', type: 'NORMAL', power: 5, hits: 3 },
+      magnetwave:   { ko: '전기자석파', intent: 'DEBUFF', status: { kind: 'PARA', amount: 2 } },
+    },
+    nextMove: (self, rng) => (self.turn === 1 ? 'magnetwave'
+      : rng.chance(0.5) ? 'thunderpunch' : 'swift'),
+  },
+
+  magmar: {
+    ko: '마그마', types: ['FIRE'], hp: [46, 52],
+    body: '#e0483a', accent: '#f0c060',
+    moves: {
+      firepunch:    { ko: '불꽃펀치', intent: 'ATTACK', type: 'FIRE', power: 10, status: { kind: 'BURN', amount: 3 } },
+      smokescreen:  { ko: '연막', intent: 'DEBUFF', rank: { stat: 'ATK', delta: -1, to: 'player' } },
+      flamethrower: { ko: '화염방사', intent: 'ATTACK', type: 'FIRE', power: 13 },
+    },
+    nextMove: (self, rng) => (self.turn === 1 ? 'smokescreen'
+      : rng.chance(0.5) ? 'firepunch' : 'flamethrower'),
+  },
+
+  jynx: {
+    ko: '루주라', types: ['ICE', 'PSYCHIC'], hp: [42, 48],
+    body: '#d84a7a', accent: '#e0c060',
+    moves: {
+      icepunch:   { ko: '냉동펀치', intent: 'ATTACK', type: 'ICE', power: 10 },
+      lovelykiss: { ko: '악마의키스', intent: 'DEBUFF', status: { kind: 'PARA', amount: 2 }, rank: { stat: 'ATK', delta: -1, to: 'player' } },
+      psychicmv:  { ko: '사이코키네시스', intent: 'ATTACK', type: 'PSYCHIC', power: 12 },
+    },
+    nextMove: (self, rng) => (self.turn % 3 === 1 ? 'lovelykiss'
+      : rng.chance(0.5) ? 'icepunch' : 'psychicmv'),
+  },
+
+  scyther: {
+    ko: '스라크', types: ['BUG', 'FLYING'], hp: [54, 60],
+    body: '#5fbc5a', accent: '#e8e0d0',
+    moves: {
+      slash:      { ko: '베어가르기', intent: 'ATTACK', type: 'NORMAL', power: 12 },
+      furycutter: { ko: '연속자르기', intent: 'ATTACK', type: 'BUG', power: 6, hits: 2 },
+      agility:    { ko: '고속이동', intent: 'BUFF', rank: { stat: 'ATK', delta: 1, to: 'self' } },
+    },
+    // 계속 빨라진다. 오래 끌면 손을 못 댄다
+    nextMove: (self) => (self.turn % 4 === 1 ? 'agility'
+      : self.turn % 2 ? 'furycutter' : 'slash'),
+  },
+
+  pinsir: {
+    ko: '쁘사이저', types: ['BUG'], hp: [58, 66],
+    body: '#8a7a5a', accent: '#5a4a30',
+    moves: {
+      vicegrip:   { ko: '조르기', intent: 'ATTACK', type: 'NORMAL', power: 11 },
+      guillotine: { ko: '싹둑자르기', intent: 'ATTACK', type: 'BUG', power: 18 },
+      harden:     { ko: '단단해지기', intent: 'DEFEND', block: 14, rank: { stat: 'DEF', delta: 1, to: 'self' } },
+    },
+    nextMove: (self) => (['harden', 'vicegrip', 'guillotine'][(self.turn - 1) % 3]),
+  },
+
+  victreebel: {
+    ko: '우츠보트', types: ['GRASS', 'POISON'], hp: [56, 64],
+    body: '#e8d02c', accent: '#5fbc5a',
+    moves: {
+      razorleaf:   { ko: '잎날가르기', intent: 'ATTACK', type: 'GRASS', power: 11 },
+      acid:        { ko: '녹기', intent: 'ATTACK', type: 'POISON', power: 9, status: { kind: 'POISON', amount: 4 } },
+      sleeppowder: { ko: '수면가루', intent: 'DEBUFF', status: { kind: 'PARA', amount: 3 } },
+      gigadrain:   { ko: '기가드레인', intent: 'ATTACK', type: 'GRASS', power: 10, heal: 12 },
+    },
+    nextMove: (self, rng) => (self.turn % 4 === 0 ? 'sleeppowder'
+      : rng.chance(0.35) ? 'gigadrain' : rng.chance(0.5) ? 'acid' : 'razorleaf'),
+  },
+
+  tentacruel: {
+    ko: '독파리', types: ['WATER', 'POISON'], hp: [62, 70],
+    body: '#5a68c0', accent: '#d84a7a',
+    moves: {
+      wrap:  { ko: '감기', intent: 'ATTACK', type: 'WATER', power: 6, hits: 2 },
+      toxic: { ko: '맹독', intent: 'DEBUFF', status: { kind: 'POISON', amount: 7 } },
+      surf:  { ko: '파도타기', intent: 'ATTACK', type: 'WATER', power: 13 },
+    },
+    nextMove: (self, rng) => (self.turn === 1 ? 'toxic'
+      : rng.chance(0.5) ? 'wrap' : 'surf'),
+  },
+
+  // ── 3막 엘리트 ────────────────────────────────────────────
+  gyarados: {
+    ko: '갸라도스', types: ['WATER', 'FLYING'], hp: [175, 175], elite: true, scale: 1.45,
+    body: '#4a68c8', accent: '#e0c060',
+    moves: {
+      dragonrage:  { ko: '용의분노', intent: 'ATTACK', type: 'DRAGON', power: 14 },
+      hydropump:   { ko: '하이드로펌프', intent: 'ATTACK', type: 'WATER', power: 20 },
+      dragondance: { ko: '용의춤', intent: 'BUFF', rank: { stat: 'ATK', delta: 2, to: 'self' } },
+      bitemv:      { ko: '깨물기', intent: 'ATTACK_DEBUFF', type: 'DARK', power: 12, rank: { stat: 'DEF', delta: -1, to: 'player' } },
+    },
+    // 전기에 4배로 녹는다. 피카츄·코일을 데려왔는지가 곧 난이도
+    nextMove: (self) => (['dragondance', 'bitemv', 'hydropump', 'dragonrage'][(self.turn - 1) % 4]),
+  },
+
+  charizard: {
+    ko: '리자몽', types: ['FIRE', 'FLYING'], hp: [170, 170], elite: true, scale: 1.4,
+    body: '#f2803c', accent: '#4a9ec8',
+    moves: {
+      flamethrower: { ko: '화염방사', intent: 'ATTACK', type: 'FIRE', power: 14, status: { kind: 'BURN', amount: 3 } },
+      wingattack:   { ko: '날개치기', intent: 'ATTACK', type: 'FLYING', power: 13 },
+      firespin:     { ko: '회오리불꽃', intent: 'ATTACK', type: 'FIRE', power: 6, hits: 3 },
+      dragonclaw:   { ko: '드래곤클로', intent: 'ATTACK', type: 'DRAGON', power: 18 },
+    },
+    nextMove: (self, rng) => (self.turn % 4 === 0 ? 'dragonclaw'
+      : rng.chance(0.4) ? 'firespin' : rng.chance(0.5) ? 'flamethrower' : 'wingattack'),
+  },
+
+  blastoise: {
+    ko: '거북왕', types: ['WATER'], hp: [190, 190], elite: true, scale: 1.4,
+    body: '#5aa8dc', accent: '#a8703a',
+    moves: {
+      hydropump: { ko: '하이드로펌프', intent: 'ATTACK', type: 'WATER', power: 19 },
+      withdrawm: { ko: '껍질에숨기', intent: 'DEFEND', block: 20, rank: { stat: 'DEF', delta: 1, to: 'self' } },
+      skullbash: { ko: '로케트박치기', intent: 'ATTACK', type: 'NORMAL', power: 15 },
+      bitemv:    { ko: '깨물기', intent: 'ATTACK', type: 'DARK', power: 11 },
+    },
+    nextMove: (self) => (['withdrawm', 'skullbash', 'hydropump', 'bitemv'][(self.turn - 1) % 4]),
+  },
+
+  // ── 3막 보스 ──────────────────────────────────────────────
+  mewtwo: {
+    ko: '뮤츠', types: ['PSYCHIC'], hp: [255, 255], boss: true, scale: 1.5,
+    body: '#c8a8d8', accent: '#8a5a9c',
+    moves: {
+      psychicmv: { ko: '사이코키네시스', intent: 'ATTACK_DEBUFF', type: 'PSYCHIC', power: 17, rank: { stat: 'DEF', delta: -1, to: 'player' } },
+      barrier:   { ko: '배리어', intent: 'DEFEND', block: 18, rank: { stat: 'DEF', delta: 1, to: 'self' } },
+      swift:     { ko: '스피드스타', intent: 'ATTACK', type: 'NORMAL', power: 7, hits: 4 },
+      recovermv: { ko: '자기재생', intent: 'DEFEND', block: 8, heal: 14 },
+      // 절반 아래로 떨어지면 쓴다. 한 방에 파티 하나가 날아갈 수 있다
+      psystrike: { ko: '사이코브레이크', intent: 'ATTACK', type: 'PSYCHIC', power: 34 },
+    },
+    nextMove: (self, rng) => {
+      const half = self.hp <= self.maxHp / 2;
+      if (self.turn === 1) return 'barrier';
+      if (half && self.turn % 5 === 0) return 'psystrike';
+      if (half && self.turn % 5 === 3) return 'recovermv';
+      if (self.turn % 5 === 0) return 'barrier';
+      return rng.chance(0.55) ? 'psychicmv' : 'swift';
+    },
+  },
 };
 
 export const enemyOf = (id) => ENEMIES[id];
 
-// ── 등장 조합 ────────────────────────────────────────────────
-// 슬더스처럼 초반 몇 판은 쉬운 조합만 나오게 나눠 둔다. 첫 전투에서
-// 죽는 로그라이크는 배울 기회를 주지 않기 때문이다.
-
-export const ENCOUNTERS = {
-  /** 1막 처음 세 판 */
-  weak: [
-    { ids: ['rattata'] },
-    { ids: ['pidgey'] },
-    { ids: ['caterpie', 'weedle'] },
-    { ids: ['rattata', 'rattata'] },
-  ],
-  /** 그 뒤 일반 전투 */
-  normal: [
-    { ids: ['zubat', 'zubat'] },
-    { ids: ['ekans'] },
-    { ids: ['sandshrew', 'rattata'] },
-    { ids: ['geodude'] },
-    { ids: ['oddish', 'caterpie'] },
-    { ids: ['mankey', 'pidgey'] },
-    { ids: ['weedle', 'caterpie'] },
-    { ids: ['ekans', 'zubat'] },
-    { ids: ['geodude', 'oddish'] },
-    { ids: ['mankey'] },
-  ],
-  elite: [
-    { ids: ['onix'] },
-    { ids: ['arbok'] },
-    { ids: ['primeape'] },
-  ],
-  boss: [
-    { ids: ['beedrill'] },
-  ],
-};
-
-/** 야생 포획으로 만날 수 있는 종 — 잡으면 파티에 들어온다 */
-export const WILD_CATCHABLE = [
-  'pikachu', 'rattata', 'pidgey', 'sandshrew', 'zubat', 'vulpix',
-  'poliwag', 'geodude', 'abra', 'gastly', 'caterpie', 'machop', 'magnemite',
-];
+// 등장 조합·포획 후보는 acts.js 로 옮겼다. 막마다 달라야 하는 값이라
+// 적 정의 옆에 두면 1막용 표 하나가 세 막을 다 떠맡게 된다.

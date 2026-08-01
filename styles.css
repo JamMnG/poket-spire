@@ -712,6 +712,39 @@ button:disabled { cursor: not-allowed; }
 .deck-grid .card { transform: none; --card-w: 128px; --card-h: 180px; }
 .deck-grid .card:hover { transform: translateY(-6px) scale(1.04); }
 
+/* 강화 미리보기 — 지금 → 강화 후를 나란히 */
+.upg-grid { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; padding: 6px 0; }
+.upg-pair {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,.03); border: 1px solid #4a3a28;
+  transition: border-color .12s, background .12s, transform .12s;
+}
+.upg-pair:hover { border-color: var(--gold); background: rgba(232,197,106,.08); transform: translateY(-3px); }
+.upg-side { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.upg-side .card {
+  transform: none; cursor: pointer;
+  --card-w: 118px; --card-h: 166px;
+}
+.upg-pair:hover .upg-side .card { transform: none; }
+/* 강화 전은 눌러 두고, 강화 후에 눈이 가게 한다 */
+.upg-side .card { opacity: .58; filter: grayscale(.35); }
+.upg-side.is-after .card { opacity: 1; filter: none; box-shadow: 0 0 0 2px var(--gold), 0 10px 26px rgba(232,197,106,.28); }
+.upg-lab {
+  font-size: 11px; font-weight: 800; letter-spacing: 1px;
+  color: var(--muted); text-transform: none;
+}
+.upg-lab.is-after { color: var(--gold); }
+.upg-arrow { font-size: 22px; font-weight: 900; color: var(--gold); opacity: .8; }
+
+/* 막 클리어 */
+.act-gain {
+  display: inline-block; margin: 4px auto 0; padding: 10px 20px;
+  border-radius: 10px; font-size: 14px; line-height: 1.9;
+  background: rgba(232,197,106,.08); border: 1px solid #6b5333;
+}
+.act-gain b { color: var(--gold); }
+
 /* 상점 */
 .shop-sec { margin-bottom: 20px; }
 .shop-sec h3 { font-size: 14px; color: var(--gold); margin-bottom: 10px; letter-spacing: 2px; }
@@ -773,4 +806,46 @@ button:disabled { cursor: not-allowed; }
   .unit-enemy .unit-sprite img { width: 130px; }
   .energy-orb { width: 58px; height: 58px; font-size: 17px; }
   .side-player { left: 3%; gap: 10px; }
+}
+
+/* ══ 휴대폰·태블릿 — 판을 통째로 축소한다 (ui/stage.js) ═════ */
+body.is-scaled { background: #080605; }
+body.is-scaled #app {
+  /* 격자 가운데 정렬은 항목이 칸보다 클 때 브라우저마다 다르게 흘러서,
+     좌표로 직접 가운데를 잡는다 */
+  position: absolute; left: 50%; top: 50%;
+  width: var(--stage-w); height: var(--stage-h);
+  transform: translate(-50%, -50%) scale(var(--stage-scale));
+  transform-origin: center center;
+  overflow: hidden;
+}
+/* 뷰포트 단위는 축소된 판 안에서는 뜻이 달라진다 — 판 기준 %로 바꾼다 */
+body.is-scaled .overlay-body { width: min(1080px, 94%); max-height: 88%; }
+
+/* 세로로 들었을 때 — 돌려 달라고만 한다 */
+.rotate-note { display: none; }
+body.is-portrait .rotate-note {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  padding: 32px; text-align: center;
+  background: #0d0a07; color: var(--paper);
+}
+body.is-portrait #app { visibility: hidden; }
+.rotate-icon {
+  font-size: 56px; line-height: 1;
+  animation: rotate-hint 2.4s ease-in-out infinite;
+}
+.rotate-note h2 { font-size: 20px; color: var(--gold); letter-spacing: 1px; }
+.rotate-note p { font-size: 13.5px; color: var(--muted); line-height: 1.7; max-width: 300px; }
+@keyframes rotate-hint {
+  0%, 40%   { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(90deg); }
+}
+
+/* 손가락으로 만지는 기기 — 누를 것들을 조금 키우고, hover 효과를 끈다 */
+@media (pointer: coarse) {
+  .card:hover { transform: none; }
+  .btn { min-height: 40px; }
+  .choice { padding: 15px 18px; }
+  .mnode { width: 52px; height: 52px; }
 }

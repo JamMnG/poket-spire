@@ -13,7 +13,7 @@ import { createStreams, randomSeed } from './rng.js';
 import { POKEMON, createMember } from '../data/pokemon.js';
 import { CARDS, POOL_IDS, makeCard } from '../data/cards.js';
 import { RELICS, availableRelics, sumField } from '../data/relics.js';
-import { ENCOUNTERS } from '../data/enemies.js';
+import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD } from '../data/acts.js';
 import { generateMap, reachableFrom } from '../data/mapGen.js';
 import { pickEvent } from '../data/events.js';
 
@@ -31,7 +31,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
     deck: [],
     relics: [],
     gold: STARTING_GOLD,
-    map: generateMap(streams.map),
+    map: generateMap(streams.map, ACTS[0].floors),
     currentNode: null,
     visitedFloors: 0,
     eventsSeen: [],
@@ -56,6 +56,9 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
   const partySlots = () => BASE_PARTY_SLOTS + (R.relics.some((id) => RELICS[id]?.extraPartySlot) ? 1 : 0);
   const partyHasRoom = () => R.party.length < partySlots();
   const hasSpecies = (id) => R.party.some((m) => m.species === id);
+
+  /** 이 막에서 만날 수 있는 야생 종 */
+  const catchablesHere = () => actOf(R.act).catchable.filter((id) => !hasSpecies(id));
 
   function catchPokemon(speciesId) {
     if (!partyHasRoom() || hasSpecies(speciesId)) return false;
@@ -136,16 +139,57 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
   // ── 적 편성 ──────────────────────────────────────────────
   function rollEncounter(kind) {
     const rng = streams.map;
-    if (kind === 'BOSS') return ENCOUNTERS.boss[0];
-    if (kind === 'ELITE') return rng.pick(ENCOUNTERS.elite);
-    // 처음 세 판은 쉬운 조합에서만 — 첫 전투에서 죽는 로그라이크는 배울 기회를 안 준다
-    const table = R.weakUsed < 3 ? ENCOUNTERS.weak : ENCOUNTERS.normal;
-    if (R.weakUsed < 3) R.weakUsed++;
-    const fresh = table.filter((e) => !R.usedEncounters.includes(e.ids.join(',')));
+    const act = actOf(R.act);
+    if (kind === 'BOSS') return { ids: act.boss };
+    if (kind === 'ELITE') return { ids: rng.pick(act.elite) };
+    // 막마다 처음 두세 판은 쉬운 조합에서만 — 들어서자마자 죽으면 배울 기회가 없다
+    const table = R.weakUsed < (R.act === 1 ? 3 : 2) ? act.weak : act.normal;
+    if (table === act.weak) R.weakUsed++;
+    const fresh = table.filter((ids) => !R.usedEncounters.includes(ids.join(',')));
     const chosen = rng.pick(fresh.length ? fresh : table);
-    R.usedEncounters.push(chosen.ids.join(','));
+    R.usedEncounters.push(chosen.join(','));
     if (R.usedEncounters.length > 6) R.usedEncounters.shift();
-    return chosen;
+    return { ids: chosen };
+  }
+
+  /**
+   * 지금 이 자리의 난이도 배율 — 전투를 만들 때 넘긴다.
+   * 막 배율에 **막 안의 진행도**를 얹는다. 같은 종이라도 위층에서 만나면
+   * 더 크고 더 아프다. 덱은 한 층 오를 때마다 카드가 붙으며 자라는데
+   * 적이 막 내내 그대로면, 막 후반부는 무조건 심심해지기 때문이다.
+   */
+  const actMul = (kind) => {
+    const a = actOf(R.act);
+    // 보스는 램프를 안 받는다. 어차피 막 꼭대기에만 있어서 진행도가 늘 1이고,
+    // 거기에 램프까지 곱하면 수치가 두 번 올라 벽이 된다 — 그렇게 뒀더니
+    // 24판 중 16판이 1막 보스에서 끝났다. 보스 수치는 enemies.js 에 "막
+    // 마지막에 만나는 것" 기준으로 적혀 있으니 막 배율만 곱한다.
+    const p = kind === 'BOSS' ? 0 : Math.min(1, R.visitedFloors / Math.max(1, a.floors - 1));
+    return {
+      hpMul: a.hpMul * (1 + (a.hpRamp ?? 0) * p),
+      dmgMul: a.dmgMul * (1 + (a.dmgRamp ?? 0) * p),
+    };
+  };
+
+  /**
+   * 보스를 잡고 다음 막으로. 마지막 막이면 false 를 돌려준다.
+   * 적만 세지면 벽이 되므로 여기서 플레이어도 같이 키운다.
+   */
+  function advanceAct() {
+    if (R.act >= ACT_COUNT) { R.won = true; return false; }
+    R.act += 1;
+    const rw = ACT_CLEAR_REWARD;
+    raiseMaxHpAll(rw.maxHpUp);
+    if (rw.fullHeal) healAll(999);
+    R.gold += rw.gold;
+    // 새 막 = 새 지도
+    R.map = generateMap(streams.map, actOf(R.act).floors);
+    R.currentNode = null;
+    R.visitedFloors = 0;
+    R.weakUsed = 0;
+    R.usedEncounters = [];
+    R.eventsSeen = [];
+    return true;
   }
 
   // ── 보상 ─────────────────────────────────────────────────
@@ -189,7 +233,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
   const eventApi = {
     get rng() { return streams.event; },
     get gold() { return R.gold; },
-    hasSpecies, partyHasRoom, catchPokemon,
+    hasSpecies, partyHasRoom, catchPokemon, catchablesHere,
     healActive, healAll, damageActive, raiseMaxHpAll,
     addGold: (n) => { R.gold = Math.max(0, R.gold + n); },
     grantRandomRelic: () => grantRandomRelic(),
@@ -201,13 +245,14 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander' } = {}
   return {
     state: R,
     // 파티
-    partySlots, partyHasRoom, hasSpecies, catchPokemon, activeMember,
+    partySlots, partyHasRoom, hasSpecies, catchPokemon, catchablesHere, activeMember,
     healActive, healAll, healAllPercent, damageActive, raiseMaxHpAll, totalHp, totalMaxHp,
     // 자원
     addRelic, grantRandomRelic, addCard, removeCard, upgradeCard,
     addGold: (n) => { R.gold = Math.max(0, R.gold + n); },
     // 진행
     options, travelTo, rollEncounter, rollCardReward, goldReward, rollShop,
+    actMul, advanceAct, act: () => actOf(R.act), actCount: ACT_COUNT,
     pickEvent: () => {
       const id = pickEvent(streams.event, R.eventsSeen);
       R.eventsSeen.push(id);
