@@ -429,11 +429,20 @@ const DRAW = {
 const ASSET_BASE = new URL('../assets/pokemon/', import.meta.url);
 
 /** 내려받아 둔 종 — 여기 없으면 도트로 떨어진다 */
+// ★ fetch_assets.py 의 POKEMON 목록과 같이 움직여야 한다. 2·3막을 넣으면서
+//   저쪽만 43종으로 늘리고 여기를 잊어서, 팬텀·뮤츠 등 19종이 아트워크를
+//   받아 놓고도 항상 도트로만 떴다. 종을 추가할 때는 두 곳을 같이 고칠 것.
 const HAS_ASSET = new Set([
   'bulbasaur', 'charmander', 'squirtle', 'caterpie', 'weedle', 'beedrill',
   'pidgey', 'rattata', 'ekans', 'arbok', 'pikachu', 'sandshrew',
   'vulpix', 'zubat', 'oddish', 'mankey', 'primeape', 'poliwag',
   'abra', 'machop', 'geodude', 'magnemite', 'gastly', 'onix',
+  // 2막 · 달의 신전
+  'diglett', 'paras', 'golbat', 'nidorino',
+  'golduck', 'marowak', 'machoke', 'gengar',
+  // 3막 · 첨탑
+  'electabuzz', 'magmar', 'jynx', 'scyther', 'pinsir',
+  'victreebel', 'tentacruel', 'gyarados', 'charizard', 'blastoise', 'mewtwo',
 ]);
 
 export const artPath = (id) => new URL(`${id}.png`, ASSET_BASE).href;

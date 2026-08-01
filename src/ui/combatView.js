@@ -231,7 +231,10 @@ export function createCombatView({ combat, onFinish }) {
       }
 
       node.appendChild(el('div.unit-sprite', {}, [
-        monImg(e.id, e.def, Math.round(6 * (e.def.scale || 1)), { alt: e.ko }),
+        // sprite 별칭이 있으면 그걸 쓴다 — 적 id 가 종 이름과 다른 경우가 있다
+        // (2막 고오스는 이벤트용 고오스와 겹치지 않게 id 가 gastlyE 다.
+        //  id 로 그리면 그림 파일도 도트 정의도 못 찾아 대체 실루엣이 떴다)
+        monImg(e.def.sprite || e.id, e.def, Math.round(6 * (e.def.scale || 1)), { alt: e.ko }),
         el('div.unit-shadow'),
       ]));
       node.appendChild(hudPlate(e.ko, e.types, e.hp, e.maxHp, {

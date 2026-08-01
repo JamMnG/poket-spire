@@ -193,6 +193,19 @@ button:disabled { cursor: not-allowed; }
 }
 .relic img { width: 24px; height: 24px; image-rendering: pixelated; }
 .relic-big { image-rendering: pixelated; flex: none; }
+.relic-big-wrap { display: grid; place-items: center; flex: none; }
+
+/* 아이템 그림을 못 읽었을 때의 첫 글자 배지 (render/itemArt.js itemImg) */
+.item-fallback {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  font-weight: 900; color: #f0dca8;
+}
+.relic-big-fb {
+  border-radius: 50%; font-size: 17px;
+  background: radial-gradient(circle at 35% 30%, #6a5533, #382a19);
+  border: 1px solid #8a6c3c;
+}
 .relic.is-boss { border-color: var(--gold); box-shadow: 0 0 8px rgba(232,197,106,.5); }
 .relic-empty { font-size: 11px; color: #5a4c3c; }
 

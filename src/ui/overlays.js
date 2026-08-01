@@ -13,7 +13,7 @@ import { POKEMON } from '../data/pokemon.js';
 import { EVENTS } from '../data/events.js';
 import { typeKo, typeColor } from '../data/types.js';
 import { monImg } from '../render/pokemonSprites.js';
-import { itemUrl } from '../render/itemArt.js';
+import { itemImg } from '../render/itemArt.js';
 import { COIN, CARDS_ICON } from './icons.js';
 
 const overlay = () => $('#overlay');
@@ -41,10 +41,11 @@ const actions = (...btns) => el('div.ov-actions', {}, btns.filter(Boolean));
 /** 도구 하나를 동그란 배지로 — 상단 도구줄과 같은 모양을 쓴다 */
 export function relicBadge(id) {
   const r = RELICS[id];
-  const src = itemUrl(r.icon);
+  // ★ itemUrl 을 <img> 에 직접 꽂지 말 것. 파일이 없으면(배포본에는 그림
+  //   자산이 아예 없다) 깨진 그림 아이콘이 그대로 떴다 — itemImg 가 실패를
+  //   잡아 이름 첫 글자 배지로 바꿔 끼운다.
   const n = el(`div.relic${r.rarity === 'BOSS' ? '.is-boss' : ''}`, {},
-    // 실제 아이템 도트가 있으면 그것을, 없으면 이름 첫 글자로 떨어진다
-    src ? [el('img', { src, alt: r.ko })] : [el('span', { text: r.ko[0] })]);
+    [itemImg(r.icon, { alt: r.ko, fallback: r.ko[0] })]);
   attachTip(n, `<div class="tt-name">${r.ko}</div>${r.desc}`);
   return n;
 }
@@ -52,10 +53,11 @@ export function relicBadge(id) {
 /** 보상·상점에서 도구를 크게 보여 줄 때 */
 export function relicIcon(id, size = 40) {
   const r = RELICS[id];
-  const src = itemUrl(r.icon);
-  return src
-    ? el('img.relic-big', { src, alt: r.ko, style: { width: `${size}px`, height: `${size}px` } })
-    : el('div.reward-ic', { text: '🎒' });
+  return el('div.relic-big-wrap', { style: { width: `${size}px`, height: `${size}px` } },
+    [itemImg(r.icon, {
+      alt: r.ko, className: 'relic-big', fallback: r.ko[0],
+      style: { width: `${size}px`, height: `${size}px` },
+    })]);
 }
 
 // ══ 전투 보상 ═══════════════════════════════════════════════
