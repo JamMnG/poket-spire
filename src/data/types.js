@@ -80,15 +80,38 @@ export function rawMultiplier(atkType, defTypes) {
   return m;
 }
 
-/** 내가 적을 때릴 때 — 무효는 0.25 로 완화 (파일 첫머리 주석 참고) */
-export function offenseMultiplier(atkType, defTypes) {
-  const raw = rawMultiplier(atkType, defTypes);
-  return raw === 0 ? 0.25 : raw;
+/**
+ * 원작 배율을 게임용으로 눌러 담는다.
+ *
+ *   원작   0    0.25  0.5   1    2    4
+ *   여기  (아래) 0.6   0.75  1    1.5  2
+ *
+ * 원작 값(2배·4배)을 그대로 썼더니 두 가지가 무너졌다. 3막에서 자속 1.5에
+ * 4배가 곱해지면 평타가 100을 넘었고, 반대로 역상성 엘리트(물카드 없이 만난
+ * 롱스톤 같은)는 4배로 맞아 한 방에 갈렸다. 상성이 "유리하게 싸울 이유"가
+ * 아니라 "만나는 순간 승패가 정해지는 복권"이 된 것이다.
+ * 눌러 담은 표에서는 최고 2배·최저 0.6배라, 상성은 이득이되 답 없는 판은
+ * 없다. 표(CHART)는 원작 그대로 두고 여기서만 누른다 — 약점·내성 표시는
+ * 원본 관계를 그대로 쓰기 때문이다.
+ */
+function compress(raw) {
+  if (raw >= 4) return 2;
+  if (raw >= 2) return 1.5;
+  if (raw === 1) return 1;
+  if (raw >= 0.5) return 0.75;
+  if (raw > 0) return 0.6;
+  return 0;
 }
 
-/** 적이 나를 때릴 때 — 무효는 진짜 0. 교체 판단에 대한 보상 */
+/** 내가 적을 때릴 때 — 무효도 0.5 로 완화. 카드가 아예 죽는 일은 없게 */
+export function offenseMultiplier(atkType, defTypes) {
+  const m = compress(rawMultiplier(atkType, defTypes));
+  return m === 0 ? 0.5 : m;
+}
+
+/** 적이 나를 때릴 때 — 무효는 진짜 0. 교체 판단에 대한 보상은 남긴다 */
 export function defenseMultiplier(atkType, defTypes) {
-  return rawMultiplier(atkType, defTypes);
+  return compress(rawMultiplier(atkType, defTypes));
 }
 
 /** 자속보정(STAB) — 선두 포켓몬의 타입과 기술 타입이 겹치면 1.5배 */
@@ -108,9 +131,9 @@ export function relation(atkType, defTypes) {
 /** 배율 자체를 문구로 — 4배와 2배를 구분해 보여 준다 */
 export function relationText(mult) {
   if (mult === 0) return '효과가 없다!';
-  if (mult >= 4) return '효과가 발군이다!!';
+  if (mult >= 2) return '효과가 발군이다!!';
   if (mult > 1) return '효과가 굉장하다!';
-  if (mult <= 0.25) return '거의 통하지 않는다';
+  if (mult <= 0.6) return '거의 통하지 않는다';
   if (mult < 1) return '효과가 별로다…';
   return '';
 }

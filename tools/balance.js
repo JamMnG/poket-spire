@@ -141,9 +141,9 @@ function doShop(run) {
  */
 function doRest(run, bossNext) {
   const worst = Math.min(...run.state.party.map((m) => m.hp / m.maxHp));
-  if (bossNext || worst < 0.62) { run.healAllPercent(0.35); return; }
+  if (bossNext || worst < 0.62) { run.healAllPercent(0.30); return; }
   const c = run.state.deck.find((x) => !x.upgraded);
-  if (c) run.upgradeCard(c.uid); else run.healAllPercent(0.35);
+  if (c) run.upgradeCard(c.uid); else run.healAllPercent(0.30);
 }
 
 /** 3막까지 한 판 */

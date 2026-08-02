@@ -31,8 +31,8 @@ export const ACTS = [
     name: '상록의 숲',
     blurb: '풀숲에서 부스럭거리는 것들.',
     floors: 15,
-    hpMul: 1.02, hpRamp: 0.93,
-    dmgMul: 0.94, dmgRamp: 0.59,
+    hpMul: 0.98, hpRamp: 0.75,
+    dmgMul: 0.90, dmgRamp: 0.52,
     // 이 막에서 야생으로 만나 잡을 수 있는 종
     catchable: ['pikachu', 'rattata', 'pidgey', 'sandshrew', 'zubat', 'caterpie', 'vulpix'],
     weak:   [['rattata'], ['pidgey'], ['caterpie', 'weedle'], ['rattata', 'rattata']],
@@ -41,7 +41,11 @@ export const ACTS = [
       ['oddish', 'caterpie'], ['mankey', 'pidgey'], ['weedle', 'caterpie'],
       ['ekans', 'zubat'], ['geodude', 'oddish'], ['mankey'],
     ],
-    elite: [['onix'], ['arbok'], ['primeape']],
+    // ★ 엘리트는 혼자 안 나온다. 혼자 나오면 디버프를 겹겹이 발라 바보로
+    //   만들 수 있었다(대상이 하나뿐이므로). 부하가 있으면 광역기와 대상
+    //   선택이 생기고, 엘리트 저항(combat.js inflict)과 함께 잠금이 풀린다.
+    // 1막 부하는 제일 약한 축으로 — 덱 10장 시절에 만나는 엘리트다
+    elite: [['onix', 'rattata'], ['arbok', 'weedle'], ['primeape', 'rattata']],
     boss: ['beedrill'],
   },
   {
@@ -49,8 +53,8 @@ export const ACTS = [
     name: '달의 신전',
     blurb: '월장석이 박힌 동굴. 빛이 닿지 않는 곳에서 무언가 웃는다.',
     floors: 16,
-    hpMul: 1.20, hpRamp: 0.61,
-    dmgMul: 1.09, dmgRamp: 0.42,
+    hpMul: 1.12, hpRamp: 0.58,
+    dmgMul: 1.04, dmgRamp: 0.40,
     catchable: ['geodude', 'machop', 'abra', 'gastly', 'poliwag', 'magnemite'],
     weak:   [['diglett', 'diglett'], ['paras'], ['zubat', 'zubat']],
     normal: [
@@ -59,7 +63,7 @@ export const ACTS = [
       ['golbat', 'paras'], ['machop', 'machop'], ['gastlyE', 'gastlyE'],
       ['nidorino', 'diglett'],
     ],
-    elite: [['golduck'], ['marowak'], ['machoke']],
+    elite: [['golduck', 'golbat'], ['marowak', 'diglett'], ['machoke', 'machop']],
     boss: ['gengar'],
   },
   {
@@ -67,8 +71,8 @@ export const ACTS = [
     name: '첨탑',
     blurb: '끝까지 오른 자만 만나는 것들이 기다린다.',
     floors: 17,
-    hpMul: 1.57, hpRamp: 0.65,
-    dmgMul: 1.36, dmgRamp: 0.50,
+    hpMul: 1.48, hpRamp: 0.62,
+    dmgMul: 1.32, dmgRamp: 0.48,
     // 3막 전용 5종 — 여기까지 온 값이다
     catchable: ['scyther', 'pinsir', 'electabuzz', 'magmar', 'jynx'],
     weak:   [['electabuzz'], ['magmar'], ['jynx']],
@@ -77,7 +81,7 @@ export const ACTS = [
       ['tentacruel'], ['scyther', 'jynx'], ['victreebel', 'tentacruel'],
       ['pinsir', 'electabuzz'], ['magmar', 'jynx'], ['golbat', 'scyther'],
     ],
-    elite: [['gyarados'], ['charizard'], ['blastoise']],
+    elite: [['gyarados', 'tentacruel'], ['charizard', 'magmar'], ['blastoise', 'victreebel']],
     boss: ['mewtwo'],
   },
 ];
@@ -112,11 +116,12 @@ export const PLAYER_SCALE = {
   2: { hp: 2.35, dmg: 1.64 },
   3: { hp: 3.75, dmg: 2.15 },
 };
-// tools/balance.js 로 재서 맞췄다 (measureMulti):
-//   1인 봇 승률 10% · 2인 7~13% · 3인 13%
-// "매우 어렵게" 패치에서 막 배율을 올린 만큼 여기는 살짝 내렸다 — 이 값은
-// 막 배율 **위에** 곱해지므로, 기본이 오르면 여기를 그대로 두기만 해도
-// 멀티가 같이 세진다. 그대로 뒀더니 2·3인이 0% 로 떨어졌다.
+// tools/balance.js 로 재서 맞췄다:
+//   1인 봇 승률 0.99% (504판 5승) — "봇 500판에 3~4승" 요청에 맞춘 극악.
+// 주의: 이 배율은 언뜻 예전(봇 10%)보다 **낮아 보인다**. 난이도의 무게가
+// 배율에서 규칙으로 옮겨 갔기 때문이다 — 쓰러진 포켓몬이 전투 후 안
+// 일어나고, 상성 최대치가 2배로 눌리고(내 4배 딜도 사라짐), 엘리트가
+// 부하를 데리고 나오며 상태이상을 반만 받는다. 배율만 보고 되돌리지 말 것.
 // 사람 수가 늘수록 조금씩 더 어렵되, 죽는 자리가 아홉 종류 방에 고르게
 // 흩어지도록 맞췄다 — 한 군데가 벽이면 "어렵다"가 아니라 "막혔다"가 된다.
 //

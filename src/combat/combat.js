@@ -143,6 +143,19 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
 
   // ── 도구가 부르는 창구 ────────────────────────────────────
   // 도구 정의가 전투 내부 구조를 몰라도 되게 이 얇은 층만 알게 한다.
+  /**
+   * 적에게 상태이상을 건다 — 엘리트·보스는 절반만 받고, 얼음은 1턴까지다.
+   * 적이 하나뿐인 엘리트 전투에서 마비·수면을 겹겹이 바르면 상대가 아무
+   * 것도 못 하는 바보가 됐다("디버프 덕지덕지"). 절반 저항 + 얼음 상한이면
+   * 상태이상은 여전히 유효하되 잠금은 안 된다.
+   */
+  function inflict(e, id, amount) {
+    let n = amount;
+    if (e.def.elite || e.def.boss) n = Math.ceil(n / 2);
+    addStatus(e.status, id, n);
+    if ((e.def.elite || e.def.boss) && e.status.FREEZE > 1) e.status.FREEZE = 1;
+  }
+
   const K = {
     get turn() { return S.turn; },
     get cardsThisTurn() { return S.cardsThisTurn; },
@@ -150,7 +163,7 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
     gainBlock: (n) => { S.block += n; },
     gainEnergy: (n) => { S.energy += n; },
     healActive: (n) => healMember(me(), n),
-    statusAllEnemies: (id, n) => { for (const e of aliveEnemies()) addStatus(e.status, id, n); },
+    statusAllEnemies: (id, n) => { for (const e of aliveEnemies()) inflict(e, id, n); },
   };
 
   const resistFloor = (m) => {
@@ -387,11 +400,11 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
         case 'status': {
           const t = op.to === 'self' ? null : (target && !target.dead ? target : aliveEnemies()[0]);
           if (op.to === 'self') addStatus(me().status, op.status, op.amount);
-          else if (t) addStatus(t.status, op.status, op.amount);
+          else if (t) inflict(t, op.status, op.amount);
           break;
         }
         case 'statusAll':
-          for (const t of aliveEnemies()) addStatus(t.status, op.status, op.amount);
+          for (const t of aliveEnemies()) inflict(t, op.status, op.amount);
           break;
         case 'rank': {
           if (op.to === 'self') {
@@ -401,6 +414,8 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
             const t = target && !target.dead ? target : aliveEnemies()[0];
             if (t) {
               t.ranks[op.stat] = clampRank(t.ranks[op.stat] + op.delta);
+              // 엘리트·보스는 -3 밑으로 안 깎인다 — 상태이상 저항과 같은 이유
+              if ((t.def.elite || t.def.boss) && t.ranks[op.stat] < -3) t.ranks[op.stat] = -3;
               fx({ kind: 'rank', side: 'enemy', uid: t.uid, stat: op.stat, delta: op.delta });
             }
           }
@@ -579,8 +594,10 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
     if (S.phase !== 'PLAYER' && S.phase !== 'ENEMY') return;
     if (aliveEnemies().length === 0) {
       S.phase = 'WON';
-      // 쓰러진 포켓몬은 HP 1로 일어난다. 완전 회복은 포켓몬센터에서.
-      for (const m of S.party) if (m.fainted) { m.fainted = false; m.hp = 1; }
+      // ★ 쓰러진 포켓몬은 일어나지 **않는다**. 예전에는 HP 1로 일으켜 줬는데,
+      //   그러면 포켓몬 하나가 사실상 공짜 여분 목숨이라 "쓰러지지 않게
+      //   싸운다"는 긴장이 통째로 사라졌다. 이제 포켓몬센터(회복)나 열매
+      //   같은 회복 수단을 써야 일어난다 — 회복 방이 진짜 선택이 된다.
       runHook(relics, 'onCombatEnd', K);
       say('전투에서 이겼다!');
     }

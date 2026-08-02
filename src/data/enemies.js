@@ -150,7 +150,7 @@ export const ENEMIES = {
 
   // ══ 1막 · 엘리트 ══════════════════════════════════════════
   onix: {
-    ko: '롱스톤', types: ['ROCK', 'GROUND'], hp: [62, 62], elite: true, scale: 1.35,
+    ko: '롱스톤', types: ['ROCK', 'GROUND'], hp: [68, 68], elite: true, scale: 1.35,
     body: '#9a9aa8', accent: '#6a6a78',
     moves: {
       bind:        { ko: '조이기', intent: 'ATTACK', type: 'NORMAL', power: 4, hits: 2 },
@@ -167,7 +167,7 @@ export const ENEMIES = {
   },
 
   arbok: {
-    ko: '아보크', types: ['POISON'], hp: [55, 55], elite: true, scale: 1.25,
+    ko: '아보크', types: ['POISON'], hp: [61, 61], elite: true, scale: 1.25,
     body: '#9b52a8', accent: '#e0d060',
     moves: {
       toxic:      { ko: '맹독', intent: 'DEBUFF', status: { kind: 'POISON', amount: 6 } },
@@ -179,7 +179,7 @@ export const ENEMIES = {
   },
 
   primeape: {
-    ko: '성원숭', types: ['FIGHT'], hp: [53, 53], elite: true, scale: 1.2,
+    ko: '성원숭', types: ['FIGHT'], hp: [59, 59], elite: true, scale: 1.2,
     body: '#e0d0b0', accent: '#c04030',
     moves: {
       thrash:     { ko: '난동부리기', intent: 'ATTACK', type: 'NORMAL', power: 4, hits: 3 },
@@ -287,7 +287,7 @@ export const ENEMIES = {
 
   // ── 2막 엘리트 ────────────────────────────────────────────
   golduck: {
-    ko: '골덕', types: ['WATER'], hp: [105, 105], elite: true, scale: 1.2,
+    ko: '골덕', types: ['WATER'], hp: [122, 122], elite: true, scale: 1.2,
     body: '#4a8ad0', accent: '#e0c060',
     moves: {
       surf:      { ko: '파도타기', intent: 'ATTACK', type: 'WATER', power: 13 },
@@ -299,7 +299,7 @@ export const ENEMIES = {
   },
 
   marowak: {
-    ko: '텅구리', types: ['GROUND'], hp: [100, 100], elite: true, scale: 1.15,
+    ko: '텅구리', types: ['GROUND'], hp: [118, 118], elite: true, scale: 1.15,
     body: '#c8a878', accent: '#e8e0d0',
     moves: {
       bonemerang: { ko: '본메랑', intent: 'ATTACK', type: 'GROUND', power: 8, hits: 2 },
@@ -312,7 +312,7 @@ export const ENEMIES = {
   },
 
   machoke: {
-    ko: '근육몬', types: ['FIGHT'], hp: [112, 112], elite: true, scale: 1.2,
+    ko: '근육몬', types: ['FIGHT'], hp: [130, 130], elite: true, scale: 1.2,
     body: '#8a94a8', accent: '#d05840',
     moves: {
       karatechop:  { ko: '태권당수', intent: 'ATTACK', type: 'FIGHT', power: 11 },
@@ -431,7 +431,7 @@ export const ENEMIES = {
 
   // ── 3막 엘리트 ────────────────────────────────────────────
   gyarados: {
-    ko: '갸라도스', types: ['WATER', 'FLYING'], hp: [175, 175], elite: true, scale: 1.45,
+    ko: '갸라도스', types: ['WATER', 'FLYING'], hp: [198, 198], elite: true, scale: 1.45,
     body: '#4a68c8', accent: '#e0c060',
     moves: {
       dragonrage:  { ko: '용의분노', intent: 'ATTACK', type: 'DRAGON', power: 14 },
@@ -444,7 +444,7 @@ export const ENEMIES = {
   },
 
   charizard: {
-    ko: '리자몽', types: ['FIRE', 'FLYING'], hp: [170, 170], elite: true, scale: 1.4,
+    ko: '리자몽', types: ['FIRE', 'FLYING'], hp: [192, 192], elite: true, scale: 1.4,
     body: '#f2803c', accent: '#4a9ec8',
     moves: {
       flamethrower: { ko: '화염방사', intent: 'ATTACK', type: 'FIRE', power: 14, status: { kind: 'BURN', amount: 3 } },
@@ -457,7 +457,7 @@ export const ENEMIES = {
   },
 
   blastoise: {
-    ko: '거북왕', types: ['WATER'], hp: [190, 190], elite: true, scale: 1.4,
+    ko: '거북왕', types: ['WATER'], hp: [212, 212], elite: true, scale: 1.4,
     body: '#5aa8dc', accent: '#a8703a',
     moves: {
       hydropump: { ko: '하이드로펌프', intent: 'ATTACK', type: 'WATER', power: 19 },

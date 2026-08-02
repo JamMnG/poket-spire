@@ -66,7 +66,7 @@ export const CARDS = {
     //   겹치면 받는 피해가 2/(2+n) 로 줄어드는데, 1코 기본 카드가 방어도
     //   여덟에 그걸 같이 주니 두 장만 써도 피해가 절반이 됐다. 90판에서
     //   꼬부기만 13승, 나머지 스타터는 2승씩이었다. 랭크는 강화 보상으로.
-    v: { cost: 1, blk: 9, def: 0 }, vUp: { blk: 12, def: 1 },
+    v: { cost: 1, blk: 8, def: 0 }, vUp: { blk: 11, def: 1 },
     build: (v) => [
       { op: 'block', amount: v.blk },
       ...(v.def ? [{ op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }] : []),
@@ -77,7 +77,7 @@ export const CARDS = {
     ko: '씨뿌리기', type: 'GRASS', kind: A, rarity: B, target: 'ENEMY',
     // 독 5 는 5+4+3+2+1 = 15 를 타입과 무관하게 뽑는다. 풀·독은 이 게임
     //   적 구성 상대로 자속 배율이 제일 나쁘므로, 이상해씨의 딜은 여기서 온다
-    v: { cost: 1, dmg: 4, psn: 6 }, vUp: { dmg: 6, psn: 8 },
+    v: { cost: 1, dmg: 4, psn: 4 }, vUp: { dmg: 6, psn: 6 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'POISON', amount: v.psn }],
     text: (v) => `${v.dmg}의 피해. 독 ${v.psn}.`,
   },
@@ -108,7 +108,7 @@ export const CARDS = {
     //   것이었다. 버그를 고치자 방어도가 막기도 하고 딜도 되는 이중 이득이
     //   되어, 90판에서 꼬부기 18승 · 파이리 3승 · 이상해씨 4승이 나왔다.
     //   그래서 값을 붙였다 — 방어도 전부를 얹되, 절반을 내놓는다.
-    v: { cost: 1, base: 4, mult: 1 }, vUp: { base: 7, mult: 1 },
+    v: { cost: 1, base: 3, mult: 1 }, vUp: { base: 6, mult: 1 },
     build: (v) => [
       { op: 'damageScaled', base: v.base, per: 'BLOCK', mult: v.mult },
       { op: 'loseBlockRatio', ratio: 0.5 },
@@ -469,7 +469,7 @@ export const CARDS = {
   // ── 그 밖의 타입 ─────────────────────────────────────────
   poisonpowder: {
     ko: '독가루', type: 'POISON', kind: S, rarity: C, target: 'ENEMY',
-    v: { cost: 0, psn: 4 }, vUp: { psn: 6 },
+    v: { cost: 1, psn: 4 }, vUp: { psn: 6 },
     build: (v) => [{ op: 'status', status: 'POISON', amount: v.psn }],
     text: (v) => `독 ${v.psn}.`,
   },
@@ -481,7 +481,7 @@ export const CARDS = {
   },
   toxic: {
     ko: '맹독', type: 'POISON', kind: S, rarity: R, target: 'ENEMY',
-    v: { cost: 1, psn: 9 }, vUp: { psn: 13 },
+    v: { cost: 1, psn: 7 }, vUp: { psn: 10 },
     build: (v) => [{ op: 'status', status: 'POISON', amount: v.psn }],
     text: (v) => `독 ${v.psn}.`,
   },
@@ -575,7 +575,7 @@ export const CARDS = {
   },
   venoshock: {
     ko: '벤오샥', type: 'POISON', kind: A, rarity: U, target: 'ENEMY',
-    v: { cost: 1, base: 7, mult: 2 }, vUp: { base: 10, mult: 3 },
+    v: { cost: 1, base: 6, mult: 2 }, vUp: { base: 9, mult: 2 },
     build: (v) => [{ op: 'damageScaled', base: v.base, per: 'POISON', mult: v.mult }],
     text: (v) => `${v.base}의 피해. 상대의 독 1당 ${v.mult}씩 늘어난다.`,
   },
@@ -764,7 +764,7 @@ export const CARDS = {
   },
   smokescreen: {
     ko: '연막', type: null, kind: S, rarity: U, target: 'ENEMY',
-    v: { cost: 0, blk: 5, down: 1 }, vUp: { blk: 8, down: 1 },
+    v: { cost: 1, blk: 6, down: 1 }, vUp: { blk: 9, down: 1 },
     build: (v) => [
       { op: 'block', amount: v.blk },
       { op: 'rank', stat: 'ATK', delta: -v.down, to: 'enemy' },
@@ -794,9 +794,9 @@ export const CARDS = {
   // ── 꼬부기 → 어니부기 → 거북왕 ──────────────────────────
   bubble: {
     ko: '거품', type: 'WATER', kind: A, rarity: C, target: 'ENEMY',
-    v: { cost: 0, dmg: 5, para: 1 }, vUp: { dmg: 8, para: 1 },
-    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'PARA', amount: v.para }],
-    text: (v) => `${v.dmg}의 피해. 마비 ${v.para}.`,
+    v: { cost: 0, dmg: 5 }, vUp: { dmg: 8 },
+    build: (v) => [{ op: 'damage', power: v.dmg }],
+    text: (v) => `${v.dmg}의 피해를 준다.`,
   },
   rapidspin: {
     ko: '고속스핀', type: 'NORMAL', kind: A, rarity: C, target: 'ENEMY',
@@ -823,13 +823,13 @@ export const CARDS = {
   shellarmor: {
     ko: '조가비갑옷', type: null, kind: P, rarity: U, target: 'SELF',
     // 꼬부기에게 "안 쓰고 남긴 방어도"의 값을 만들어 준다
-    v: { cost: 1, blk: 4 }, vUp: { blk: 6 },
+    v: { cost: 1, blk: 3 }, vUp: { blk: 5 },
     build: (v) => [{ op: 'power', id: 'INGRAIN', amount: v.blk }],
     text: (v) => `이 전투 동안, 턴이 끝날 때마다 방어도 ${v.blk}를 얻는다.`,
   },
   irondefensecard: {
     ko: '껍질닫기', type: null, kind: S, rarity: R, target: 'SELF',
-    v: { cost: 1, blk: 14, def: 1, draw: 1 }, vUp: { blk: 19, def: 2, draw: 1 },
+    v: { cost: 1, blk: 11, def: 1, draw: 1 }, vUp: { blk: 15, def: 1, draw: 1 },
     build: (v) => [
       { op: 'block', amount: v.blk },
       { op: 'rank', stat: 'DEF', delta: v.def, to: 'self' },
@@ -851,7 +851,7 @@ export const CARDS = {
   // ── 이상해씨 → 이상해풀 → 이상해꽃 ──────────────────────
   stunspore: {
     ko: '마비가루', type: 'GRASS', kind: S, rarity: C, target: 'ENEMY',
-    v: { cost: 0, para: 2 }, vUp: { para: 3 },
+    v: { cost: 1, para: 2 }, vUp: { para: 3 },
     build: (v) => [{ op: 'status', status: 'PARA', amount: v.para }],
     text: (v) => `마비 ${v.para}. 상대의 공격이 25% 약해진다.`,
   },
@@ -863,7 +863,8 @@ export const CARDS = {
   },
   growth: {
     ko: '성장', type: null, kind: S, rarity: U, target: 'SELF',
-    v: { cost: 0, atk: 1, draw: 1 }, vUp: { atk: 1, draw: 2 },
+    // 0코였을 때는 낼지 말지를 고민할 이유가 없었다 — 공짜 랭크에 공짜 드로우
+    v: { cost: 1, atk: 1, draw: 1 }, vUp: { atk: 1, draw: 2 },
     build: (v) => [
       { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' },
       { op: 'draw', amount: v.draw },
@@ -879,7 +880,7 @@ export const CARDS = {
   toxicvine: {
     ko: '독덩굴', type: 'POISON', kind: A, rarity: U, target: 'ENEMY',
     // 독 피해는 타입표를 안 탄다 — 풀/독의 나쁜 상성을 메우는 축이다
-    v: { cost: 1, dmg: 5, psn: 6, drain: 1 }, vUp: { dmg: 7, psn: 8, drain: 1 },
+    v: { cost: 1, dmg: 5, psn: 4, drain: 1 }, vUp: { dmg: 7, psn: 6, drain: 1 },
     build: (v) => [
       { op: 'damage', power: v.dmg },
       { op: 'status', status: 'POISON', amount: v.psn },
@@ -895,7 +896,7 @@ export const CARDS = {
   },
   frenzyplant: {
     ko: '하드플랜트', type: 'GRASS', kind: A, rarity: R, target: 'ALL',
-    v: { cost: 3, dmg: 14, psn: 7 }, vUp: { dmg: 19, psn: 10 },
+    v: { cost: 3, dmg: 14, psn: 5 }, vUp: { dmg: 19, psn: 7 },
     build: (v) => [
       { op: 'damageAll', power: v.dmg },
       { op: 'statusAll', status: 'POISON', amount: v.psn },

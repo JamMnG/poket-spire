@@ -111,8 +111,9 @@ export function generateMap(rng, floors = FLOORS) {
     do {
       pick = rng.weighted(table, (x) => x.w).type;
       guard++;
-      // 휴식·상점이 앞 방과 연달아 나오면 그건 선택이 아니다
-      if ((pick === 'REST' || pick === 'SHOP') && prevTypes(n).includes(pick)) continue;
+      // 휴식·상점이 앞 방과 연달아 나오면 그건 선택이 아니고,
+      // 엘리트 두 개가 연달아 있으면 그 길은 선택이 아니라 함정이다
+      if ((pick === 'REST' || pick === 'SHOP' || pick === 'ELITE') && prevTypes(n).includes(pick)) continue;
       break;
     } while (guard < 20);
     n.type = pick || 'MONSTER';

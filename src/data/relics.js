@@ -25,6 +25,8 @@ const C = 'COMMON', U = 'UNCOMMON', R = 'RARE', BOSS = 'BOSS';
 /** 특정 타입 기술의 위력을 올리는 도구를 한 줄로 찍어 낸다 */
 const typeBooster = (ko, type, add, blurb, icon) => ({
   ko, rarity: C, boostType: type, icon,
+  // forType — 파티에 이 타입이 있어야 보상·상점에 나온다 (availableRelics)
+  forType: type,
   desc: `${blurb} 기술의 위력이 ${add} 오른다.`,
   powerMod: (_C, card) => (card.type === type ? add : 0),
 });
@@ -71,7 +73,7 @@ export const RELICS = {
   },
   evereststone: {
     ko: '만능조약돌', icon: 'everstone', rarity: U,
-    desc: '불리한 상성으로 받는 손해가 줄어든다. (0.5배 → 0.75배)',
+    desc: '불리한 상성으로 받는 손해가 줄어든다.',
     resistFloor: (m) => (m < 1 && m > 0 ? Math.min(1, m * 1.5) : m),
   },
   lightclay: {
@@ -85,12 +87,12 @@ export const RELICS = {
     freeSwitch: () => true,
   },
   flameorb: {
-    ko: '화염구슬', icon: 'flame-orb', rarity: U,
+    ko: '화염구슬', icon: 'flame-orb', rarity: U, forType: 'FIRE',
     desc: '적이 받는 화상 피해가 2배가 된다.',
     burnMul: 2,
   },
   toxicspikes: {
-    ko: '독압정', icon: 'toxic-orb', rarity: U,
+    ko: '독압정', icon: 'toxic-orb', rarity: U, forType: 'POISON',
     desc: '전투를 시작할 때 모든 적에게 독 3을 준다.',
     onCombatStart: (K) => K.statusAllEnemies('POISON', 3),
   },
@@ -141,10 +143,19 @@ export const relicOf = (id) => RELICS[id];
 /** 등급별 후보 — 보상 추첨에 쓴다 */
 export const relicsByRarity = (rarity) => ALL_RELIC_IDS.filter((id) => RELICS[id].rarity === rarity);
 
-/** 이미 가진 것을 뺀 후보 */
-export function availableRelics(owned, rarities = [ 'COMMON', 'UNCOMMON', 'RARE' ]) {
+/**
+ * 이미 가진 것을 뺀 후보.
+ * partyTypes 를 주면 타입 전용 도구(forType)는 파티에 그 타입이 있을 때만
+ * 나온다 — 꼬부기 파티에 목탄(불꽃 위력)이 뜨는 건 보상이 아니라 꽝이다.
+ */
+export function availableRelics(owned, rarities = [ 'COMMON', 'UNCOMMON', 'RARE' ], partyTypes = null) {
   const has = new Set(owned);
-  return ALL_RELIC_IDS.filter((id) => !has.has(id) && rarities.includes(RELICS[id].rarity));
+  return ALL_RELIC_IDS.filter((id) => {
+    const r = RELICS[id];
+    if (has.has(id) || !rarities.includes(r.rarity)) return false;
+    if (r.forType && partyTypes && !partyTypes.has(r.forType)) return false;
+    return true;
+  });
 }
 
 /**

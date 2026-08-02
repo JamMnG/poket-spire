@@ -412,7 +412,7 @@ function finishCombat(result, roomType) {
   // ★ 사람 수만큼, 늘 같은 순서로 굴린다. 모두가 같은 코드를 돌리므로
   //   이렇게 해야 세 사람이 서로 다른(그러나 전원이 똑같이 아는) 세 장을 본다.
   const perPlayer = run.state.players.map(() => run.rollCardReward(3, { rareBias: bias }));
-  const pool = availableRelics(run.state.relics);
+  const pool = availableRelics(run.state.relics, undefined, run.partyTypes());
   const relicId = roomType === 'ELITE' && pool.length ? run.state.streams.reward.pick(pool) : null;
 
   if (!isMulti()) {

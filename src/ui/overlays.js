@@ -144,17 +144,35 @@ export function showWaiting(text) {
 }
 
 // ══ 카드 고르기 (보상·상점 공용) ════════════════════════════
+// ★ 한 번 누르면 **고르기만** 하고, 버튼을 눌러야 확정된다. 예전에는 첫
+//   클릭이 곧 확정이라, 더블클릭 버릇이 있는 사람은 보기도 전에 카드가
+//   덱에 들어갔다. 실수를 되돌릴 수 없는 화면에서 원클릭 확정은 함정이다.
 export function showCardPick(cardIds, heading, onPick, opts = {}) {
   const cards = cardIds.map((id) => makeCard(id));
-  open(
-    title(heading),
-    sub('마우스를 올리면 효과를 볼 수 있다.'),
-    el('div.card-grid', {}, cards.map((inst) =>
-      cardEl(inst, { onclick: () => { closeOverlay(); onPick(inst.id); } }))),
-    actions(opts.skippable && el('button.btn.btn-ghost', {
-      text: '아무것도 배우지 않는다', onclick: () => { closeOverlay(); onPick(null); },
-    })),
-  );
+  let picked = null;
+
+  function rebuild() {
+    open(
+      title(heading),
+      sub(picked ? '아래 버튼을 누르면 확정된다.' : '카드를 한 번 눌러 고른다.'),
+      el('div.card-grid', {}, cards.map((inst) =>
+        cardEl(inst, {
+          picked: picked === inst.id,
+          onclick: () => { picked = picked === inst.id ? null : inst.id; rebuild(); },
+        }))),
+      actions(
+        el('button.btn.btn-primary.btn-lg', {
+          text: picked ? `${CARDS[picked].ko}을(를) 배운다` : '카드를 먼저 고른다',
+          disabled: !picked,
+          onclick: () => { if (picked) { closeOverlay(); onPick(picked); } },
+        }),
+        opts.skippable && el('button.btn.btn-ghost', {
+          text: '아무것도 배우지 않는다', onclick: () => { closeOverlay(); onPick(null); },
+        }),
+      ),
+    );
+  }
+  rebuild();
 }
 
 
@@ -257,7 +275,10 @@ export function showParty(run) {
 
 // ══ 포켓몬센터 (모닥불) ═════════════════════════════════════
 export function showRest(run, onDone) {
-  const healPct = 0.35;
+  // 쓰러진 포켓몬도 여기서 일어난다(healAllPercent 가 fainted 를 푼다).
+  // 부활이 전투 승리에서 회복 방으로 옮겨 오면서, 이 30% 가 "눕느냐
+  // 강화하느냐"를 진짜 고민으로 만든다.
+  const healPct = 0.30;
   const heal = () => {
     run.healAllPercent(healPct);
     closeOverlay(); onDone();

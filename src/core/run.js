@@ -169,8 +169,15 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     return rel.ko;
   }
 
+  /** 파티가 가진 타입 — 카드 보상과 도구 후보를 거르는 데 쓴다 */
+  function partyTypes() {
+    const t = new Set();
+    for (const m of R.party) for (const ty of m.types) t.add(ty);
+    return t;
+  }
+
   function grantRandomRelic(rarities) {
-    const pool = availableRelics(R.relics, rarities);
+    const pool = availableRelics(R.relics, rarities, partyTypes());
     if (!pool.length) return null;
     return addRelic(streams.reward.pick(pool));
   }
@@ -293,7 +300,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     const rng = streams.shop;
     const pool = rewardPool();
     const cardIds = rng.sample(pool, 5);
-    const relicPool = availableRelics(R.relics);
+    const relicPool = availableRelics(R.relics, undefined, partyTypes());
     const relicIds = rng.sample(relicPool, 2);
     const priceOf = (rarity) => ({ COMMON: 50, UNCOMMON: 75, RARE: 110 }[rarity] ?? 60);
     return {
@@ -308,7 +315,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     get rng() { return streams.event; },
     get gold() { return R.gold; },
     hasSpecies, partyHasRoom, catchPokemon, catchablesHere,
-    healActive, healAll, damageActive, raiseMaxHpAll,
+    healActive, healAll, healAllPercent, damageActive, raiseMaxHpAll,
     addGold: (n) => { R.gold = Math.max(0, R.gold + n); },
     grantRandomRelic: () => grantRandomRelic(),
     openUpgrade: () => { R.request = { kind: 'UPGRADE' }; },
@@ -327,7 +334,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     // 진행
     options, travelTo, rollEncounter, rollCardReward, goldReward, rollShop,
     actMul, advanceAct, act: () => actOf(R.act), actCount: ACT_COUNT,
-    isMulti, asPlayer, playerCount: () => R.players.length,
+    isMulti, asPlayer, playerCount: () => R.players.length, partyTypes,
     pickEvent: () => {
       const id = pickEvent(streams.event, R.eventsSeen);
       R.eventsSeen.push(id);
