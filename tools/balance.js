@@ -140,6 +140,8 @@ function doShop(run) {
  *   아니라 봇의 실수를 재고 있었던 것이다.
  */
 function doRest(run, bossNext) {
+  // 기절자가 있으면 무조건 치료 — 회복이 더는 부활을 겸하지 않는다
+  if (run.state.party.some((m) => m.fainted)) { run.reviveFainted(0.4); return; }
   const worst = Math.min(...run.state.party.map((m) => m.hp / m.maxHp));
   if (bossNext || worst < 0.62) { run.healAllPercent(0.30); return; }
   const c = run.state.deck.find((x) => !x.upgraded);

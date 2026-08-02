@@ -17,7 +17,8 @@ import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD, scaleFor, roomScale } from '.
 import { generateMap, reachableFrom } from '../data/mapGen.js';
 import { pickEvent } from '../data/events.js';
 
-export const BASE_PARTY_SLOTS = 3;
+// 스타터 + 동료 1. 동료가 둘이면 예비 목숨이 둘이라 난이도가 통째로 무너졌다
+export const BASE_PARTY_SLOTS = 2;
 export const STARTING_GOLD = 99;
 
 /**
@@ -116,9 +117,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
   const isMulti = () => R.players.length > 1;
   // 멀티에서는 파티 칸을 사람이 하나씩 채운다. 잡아도 자리가 안 나는 대신,
   // 잡은 포켓몬의 기술 두 장은 잡은 사람 덱에 들어간다(catchPokemon 참고).
-  const partySlots = () => (isMulti()
-    ? R.players.length
-    : BASE_PARTY_SLOTS + (R.relics.some((id) => RELICS[id]?.extraPartySlot) ? 1 : 0));
+  const partySlots = () => (isMulti() ? R.players.length : BASE_PARTY_SLOTS);
   const partyHasRoom = () => R.party.length < partySlots();
   const hasSpecies = (id) => R.party.some((m) => m.species === id);
 
@@ -144,12 +143,50 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     return true;
   }
 
+  /**
+   * 동료를 바꾼다 — 자리가 없을 때 야생 이벤트가 묻고, 여기로 확정된다.
+   * 스타터(0번)는 못 버린다. 떠나는 동료의 전용 기술도 덱에서 같이 빠진다 —
+   * 카드만 남으면 owner 가 없어 영영 못 쓰는 종이가 된다.
+   */
+  function swapCompanion(speciesId) {
+    if (partyHasRoom()) return catchPokemon(speciesId);
+    const old = R.party[1];
+    if (!old || hasSpecies(speciesId)) return false;
+    for (const p of R.players) p.deck = p.deck.filter((c) => c.owner !== old.species);
+    R.party.splice(1, 1);
+    return catchPokemon(speciesId);
+  }
+
   // ── HP ───────────────────────────────────────────────────
   const activeMember = () => R.party.find((m) => !m.fainted) || R.party[0];
   const healActive = (n) => { const m = activeMember(); m.hp = Math.min(m.maxHp, m.hp + n); };
   const damageActive = (n) => { const m = activeMember(); m.hp = Math.max(1, m.hp - n); };
-  const healAll = (n) => { for (const m of R.party) { m.fainted = false; m.hp = Math.min(m.maxHp, m.hp + n); } };
-  const healAllPercent = (p) => { for (const m of R.party) { m.fainted = false; m.hp = Math.min(m.maxHp, m.hp + Math.ceil(m.maxHp * p)); } };
+  // ★ 회복은 기절을 되살리지 **않는다**. 예전에는 healAll 이 fainted 를 조용히
+  //   풀어서, ? 방 열매 8 회복에도 죽은 동료가 벌떡 일어났다 — "전투가 끝나면
+  //   살아난다"로 보인 원인이 이것이다. 부활은 revive 를 명시한 곳(포켓몬센터의
+  //   치료, 막 클리어, 사당의 완전 회복)에서만 일어난다.
+  const healAll = (n, { revive = false } = {}) => {
+    for (const m of R.party) {
+      if (m.fainted && !revive) continue;
+      m.fainted = false;
+      m.hp = Math.min(m.maxHp, Math.max(1, m.hp + n));
+    }
+  };
+  const healAllPercent = (p, { revive = false } = {}) => {
+    for (const m of R.party) {
+      if (m.fainted && !revive) continue;
+      m.fainted = false;
+      m.hp = Math.min(m.maxHp, Math.max(1, m.hp + Math.ceil(m.maxHp * p)));
+    }
+  };
+  /** 쓰러진 포켓몬만 일으킨다 — 포켓몬센터의 '치료' 가 쓴다 */
+  const reviveFainted = (pct = 0.4) => {
+    for (const m of R.party) {
+      if (!m.fainted) continue;
+      m.fainted = false;
+      m.hp = Math.max(1, Math.ceil(m.maxHp * pct));
+    }
+  };
   const raiseMaxHpAll = (n) => { for (const m of R.party) { m.maxHp += n; m.hp += n; } };
 
   const totalHp = () => R.party.reduce((s, m) => s + m.hp, 0);
@@ -262,7 +299,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     R.act += 1;
     const rw = ACT_CLEAR_REWARD;
     raiseMaxHpAll(rw.maxHpUp);
-    if (rw.fullHeal) healAll(999);
+    if (rw.fullHeal) healAll(999, { revive: true });   // 막 경계는 완전한 리셋이다
     R.gold += rw.gold;
     // 새 막 = 새 지도
     R.map = generateMap(streams.map, actOf(R.act).floors);
@@ -315,8 +352,10 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
   const eventApi = {
     get rng() { return streams.event; },
     get gold() { return R.gold; },
-    hasSpecies, partyHasRoom, catchPokemon, catchablesHere,
+    hasSpecies, partyHasRoom, catchPokemon, catchablesHere, isMulti,
     healActive, healAll, healAllPercent, damageActive, raiseMaxHpAll,
+    party: () => R.party,
+    openSwap: (species) => { R.request = { kind: 'SWAP', species }; },
     addGold: (n) => { R.gold = Math.max(0, R.gold + n); },
     grantRandomRelic: () => grantRandomRelic(),
     openUpgrade: () => { R.request = { kind: 'UPGRADE' }; },
@@ -327,8 +366,8 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
   return {
     state: R,
     // 파티
-    partySlots, partyHasRoom, hasSpecies, catchPokemon, catchablesHere, activeMember,
-    healActive, healAll, healAllPercent, damageActive, raiseMaxHpAll, totalHp, totalMaxHp,
+    partySlots, partyHasRoom, hasSpecies, catchPokemon, catchablesHere, swapCompanion, activeMember,
+    healActive, healAll, healAllPercent, reviveFainted, damageActive, raiseMaxHpAll, totalHp, totalMaxHp,
     // 자원
     addRelic, grantRandomRelic, addCard, removeCard, upgradeCard,
     addGold: (n) => { R.gold = Math.max(0, R.gold + n); },

@@ -274,13 +274,52 @@ export function showParty(run) {
 }
 
 // ══ 포켓몬센터 (모닥불) ═════════════════════════════════════
+/** 동료 교체 — 야생에서 자리가 없을 때. 무엇을 잃는지 양쪽 다 보여 준다 */
+export function showSwapCatch(run, species, onDone) {
+  const old = run.state.party[1];
+  const sp = POKEMON[species];
+  const cardsOf = (id) => POKEMON[id].cards.map((c) => CARDS[c].ko).join(' · ');
+
+  const panel = (mem, title2, isNew) => el(`div.party-card${isNew ? '.is-new' : ''}`, {}, [
+    el('div.reward-sub', { text: title2 }),
+    monImg(isNew ? species : mem.species, POKEMON[isNew ? species : mem.species], 4, {}),
+    el('div.p-name', { text: isNew ? sp.ko : mem.ko }),
+    el('div.reward-sub', { text: isNew ? `HP ${sp.hp}` : `HP ${mem.hp}/${mem.maxHp}${mem.fainted ? ' (기절)' : ''}` }),
+    el('div.reward-sub', { text: `기술: ${cardsOf(isNew ? species : mem.species)}` }),
+  ]);
+
+  open(
+    title('동료를 바꿀까?'),
+    sub(`동료는 한 명뿐이다. ${sp.ko}을(를) 잡으면 ${old.ko}${josa(old.ko, '이', '가')} 떠나고, 그 전용 기술도 덱에서 빠진다.`),
+    el('div.party-panel', {}, [
+      panel(old, '지금 동료', false),
+      el('div.upg-arrow', { text: '→' }),
+      panel(null, '새 동료', true),
+    ]),
+    actions(
+      el('button.btn.btn-primary.btn-lg', {
+        text: `${old.ko}을(를) 보내고 ${sp.ko}을(를) 잡는다`,
+        onclick: () => { run.swapCompanion(species); closeOverlay(); onDone(); },
+      }),
+      el('button.btn.btn-ghost', {
+        text: `${sp.ko}을(를) 놓아준다`,
+        onclick: () => { closeOverlay(); onDone(); },
+      }),
+    ),
+  );
+}
+
 export function showRest(run, onDone) {
-  // 쓰러진 포켓몬도 여기서 일어난다(healAllPercent 가 fainted 를 푼다).
-  // 부활이 전투 승리에서 회복 방으로 옮겨 오면서, 이 30% 가 "눕느냐
-  // 강화하느냐"를 진짜 고민으로 만든다.
   const healPct = 0.30;
   const heal = () => {
     run.healAllPercent(healPct);
+    closeOverlay(); onDone();
+  };
+  // 부활은 여기서만, 그것도 회복 대신 고르는 값이다. 회복이 기절까지 조용히
+  // 풀어 주던 시절에는 동료가 죽어도 아무 일도 아니었다.
+  const anyFainted = run.state.party.some((m) => m.fainted);
+  const revive = () => {
+    run.reviveFainted(0.4);
     closeOverlay(); onDone();
   };
   const upgrade = () => showDeckPick(run, '강화할 기술을 고른다', (c) => !c.upgraded, (inst) => {
@@ -300,6 +339,13 @@ export function showRest(run, onDone) {
           el('div.reward-sub', { text: `파티 전원이 최대 HP의 ${Math.round(healPct * 100)}%를 회복한다` }),
         ]),
       ]),
+      anyFainted && el('button.reward-item', { onclick: revive }, [
+        el('div.reward-ic', { text: '✚' }),
+        el('div', {}, [
+          el('div.reward-tx', { text: '쓰러진 포켓몬을 치료한다' }),
+          el('div.reward-sub', { text: '기절한 포켓몬만 최대 HP의 40%로 일어난다' }),
+        ]),
+      ]),
       el('button.reward-item', { onclick: upgrade }, [
         el('div.reward-ic', { text: '⬆' }),
         el('div', {}, [
@@ -307,7 +353,7 @@ export function showRest(run, onDone) {
           el('div.reward-sub', { text: '카드 한 장을 영구히 강화한다' }),
         ]),
       ]),
-    ]),
+    ].filter(Boolean)),
   );
 }
 

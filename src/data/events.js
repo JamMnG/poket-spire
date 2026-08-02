@@ -24,16 +24,26 @@ export const EVENTS = {
     choices: [
       {
         label: '몬스터볼을 던진다',
-        desc: (R, d) => (d.species
-          ? `${POKEMON[d.species].ko}을(를) 잡는다. 덱에 들어오는 기술: ${
-              POKEMON[d.species].cards.map((c) => CARDS[c].ko).join(' · ')}`
-          : '더 잡을 만한 포켓몬이 없다.'),
-        enabled: (R, d) => R.partyHasRoom() && !!d.species,
+        desc: (R, d) => {
+          if (!d.species) return '더 잡을 만한 포켓몬이 없다.';
+          const base = `${POKEMON[d.species].ko}을(를) 잡는다. 덱에 들어오는 기술: ${
+            POKEMON[d.species].cards.map((c) => CARDS[c].ko).join(' · ')}`;
+          // 동료는 한 명뿐이다 — 자리가 없으면 바꿔야 잡을 수 있다는 것을 미리 말한다
+          if (!R.isMulti() && !R.partyHasRoom()) {
+            const old = R.party()[1];
+            return base + ` (동료는 한 명뿐 — ${old ? old.ko + '을(를) 보내야 한다' : ''})`;
+          }
+          return base;
+        },
+        enabled: (R, d) => !!d.species && !R.hasSpecies(d.species),
         effect: (R, d) => {
           if (!d.species) return '풀숲은 이미 조용했다.';
-          if (R.hasSpecies(d.species)) return `이미 ${POKEMON[d.species].ko}이(가) 있다. 그냥 보내 줬다.`;
-          R.catchPokemon(d.species);
-          return `좋아! ${POKEMON[d.species].ko}을(를) 잡았다!`;
+          if (R.isMulti() || R.partyHasRoom()) {
+            R.catchPokemon(d.species);
+            return `좋아! ${POKEMON[d.species].ko}을(를) 잡았다!`;
+          }
+          R.openSwap(d.species);   // 바꿀지 말지는 다음 화면에서 (main.js SWAP)
+          return null;
         },
       },
       {

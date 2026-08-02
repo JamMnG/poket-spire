@@ -575,7 +575,8 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
     if (!opt.free) S.switchedThisTurn = true;
 
     S.active = index;
-    S.block = 0;                                   // 방어도는 자리에 붙어 있다
+    // 방어도는 자리에 붙어 있어 교체하면 사라진다 — 마스터볼만 예외
+    if (!anyField(relics, 'keepBlockOnSwitch')) S.block = 0;
     if (!opt.keepRanks) S.ranks = { ATK: 0, DEF: 0 };
     S.awaitSwitch = null;
     say(`가랏, ${m.ko}!`);

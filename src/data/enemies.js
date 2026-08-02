@@ -325,7 +325,7 @@ export const ENEMIES = {
 
   // ── 2막 보스 ──────────────────────────────────────────────
   gengar: {
-    ko: '팬텀', types: ['GHOST', 'POISON'], hp: [195, 195], boss: true, scale: 1.4,
+    ko: '팬텀', types: ['GHOST', 'POISON'], hp: [182, 182], boss: true, scale: 1.4,
     body: '#6a4a9c', accent: '#3a2060',
     moves: {
       shadowball: { ko: '섀도볼', intent: 'ATTACK_DEBUFF', type: 'GHOST', power: 13, rank: { stat: 'DEF', delta: -1, to: 'player' } },
@@ -333,7 +333,7 @@ export const ENEMIES = {
       sludgebomb: { ko: '오물폭탄', intent: 'ATTACK', type: 'POISON', power: 12, status: { kind: 'POISON', amount: 4 } },
       curse:      { ko: '저주', intent: 'BUFF', rank: { stat: 'ATK', delta: 1, to: 'self' }, block: 10 },
       // 고스트라 노말·격투는 아예 통하지 않는다. 파티에 답이 없으면 벽이 된다
-      dreameater: { ko: '꿈먹기', intent: 'ATTACK', type: 'PSYCHIC', power: 24, heal: 10 },
+      dreameater: { ko: '꿈먹기', intent: 'ATTACK', type: 'PSYCHIC', power: 21, heal: 8 },
     },
     nextMove: (self, rng) => {
       const half = self.hp <= self.maxHp / 2;

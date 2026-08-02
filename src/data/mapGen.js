@@ -111,12 +111,62 @@ export function generateMap(rng, floors = FLOORS) {
     do {
       pick = rng.weighted(table, (x) => x.w).type;
       guard++;
-      // 휴식·상점이 앞 방과 연달아 나오면 그건 선택이 아니고,
-      // 엘리트 두 개가 연달아 있으면 그 길은 선택이 아니라 함정이다
-      if ((pick === 'REST' || pick === 'SHOP' || pick === 'ELITE') && prevTypes(n).includes(pick)) continue;
+      // 휴식·상점·? 가 앞 방과 연달아 나오면 그건 선택이 아니고,
+      // 엘리트 두 개가 연달아 있으면 그 길은 선택이 아니라 함정이다.
+      // (? 를 안 걸렀더니 한 길에 ? 가 여섯 번 이어지는 지도가 실제로 나왔다)
+      if ((pick === 'REST' || pick === 'SHOP' || pick === 'ELITE' || pick === 'EVENT')
+        && prevTypes(n).includes(pick)) continue;
       break;
     } while (guard < 20);
     n.type = pick || 'MONSTER';
+  }
+
+  // ── 2.5 최소 보장 ────────────────────────────────────────
+  // 가중치 추첨은 평균만 지킨다 — 엘리트가 지도에 하나뿐이거나 상점이 아예
+  // 없는 지도가 실제로 나왔다. 로그라이크의 무작위는 "어떤 조합이 나올까"
+  // 이지 "지도가 성립할까"가 아니므로, 종류별 최소·최대를 못 박는다.
+  {
+    // 추첨 단계의 재시도(guard 20회)를 다 써 버리면 겹친 채로 남는다 —
+    // 여기서 확정적으로 지운다. 아래 clampType 이 최소 개수를 되살린다.
+    const SPECIAL = ['EVENT', 'ELITE', 'REST', 'SHOP'];
+    for (const n of all) {
+      if (!SPECIAL.includes(n.type)) continue;
+      if (n.prev.some((id) => byId.get(id)?.type === n.type)) n.type = 'MONSTER';
+    }
+
+    const assignable = all.filter((n) =>
+      n.floor > 0 && n.floor !== Math.floor(FL / 2) - 1 && n.floor !== FL - 1);
+    const ofType = (t) => assignable.filter((n) => n.type === t);
+    const nearSame = (n, t) =>
+      n.prev.some((id) => byId.get(id)?.type === t) ||
+      n.next.some((id) => byId.get(id)?.type === t);
+
+    /** count 를 min~max 로 맞춘다. 늘릴 때는 MONSTER 를 바꿔 쓴다 */
+    const clampType = (t, min, max, floorMin) => {
+      let have = ofType(t);
+      // 넘치면 무작위로 골라 전투로 되돌린다
+      while (have.length > max) {
+        const kill = rng.pick(have);
+        kill.type = 'MONSTER';
+        have = ofType(t);
+      }
+      // 모자라면 조건 맞는 전투 방을 바꾼다 (같은 종류와 이웃하지 않게)
+      let guard = 0;
+      while (have.length < min && guard++ < 40) {
+        const cand = assignable.filter((n) =>
+          n.type === 'MONSTER' && n.floor >= floorMin && !nearSame(n, t));
+        if (!cand.length) break;
+        rng.pick(cand).type = t;
+        have = ofType(t);
+      }
+    };
+
+    clampType('ELITE', 2, 3, 4);      // 막마다 엘리트 2~3 — 하나뿐이면 도구가 안 돈다
+    clampType('SHOP', 1, 2, 3);       // 상점 최소 1 — 돈이 쓸 곳 없이 쌓이면 죽은 자원
+    clampType('REST', 1, 3, 4);       // 꼭대기 고정 휴식 말고도 최소 1
+    // ? 는 전체의 30% 를 넘지 않게 — 넘치는 만큼 전투로
+    const evMax = Math.max(3, Math.floor(assignable.length * 0.30));
+    clampType('EVENT', 2, evMax, 1);
   }
 
   // ── 3. 보스 ──────────────────────────────────────────────

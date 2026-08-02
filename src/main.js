@@ -324,6 +324,8 @@ function handleRequest() {
       if (inst) run.removeCard(inst.uid);
       refreshMap();
     }, { cancellable: true });
+  } else if (req.kind === 'SWAP') {
+    OV.showSwapCatch(run, req.species, refreshMap);
   } else if (req.kind === 'COMBAT') {
     startCombat(req.roomType || 'ELITE');
   } else {

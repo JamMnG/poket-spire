@@ -1087,3 +1087,6 @@ body.is-portrait #app { visibility: hidden; }
   font-size: 10.5px; color: #6f6252; font-weight: 800;
   padding: 2px 6px; border-radius: 4px; border: 1px solid #3c2f20; cursor: help;
 }
+
+/* 동료 교체 화면 — 새 동료 쪽이 빛난다 */
+.party-card.is-new { border-color: var(--gold); box-shadow: 0 0 12px rgba(232,197,106,.3); }

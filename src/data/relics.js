@@ -17,7 +17,7 @@
 //   blockKeepRatio() → 비율        턴 종료 시 남기는 방어도 비율
 //   resistFloor(mult) → 배율       불리 상성 완화
 //   freeSwitch() → bool            교체 에너지 면제
-//   extraPartySlot() → bool        파티 슬롯 확장
+//   keepBlockOnSwitch → bool       교체해도 방어도 유지 (마스터볼)
 // ─────────────────────────────────────────────────────────────
 
 const C = 'COMMON', U = 'UNCOMMON', R = 'RARE', BOSS = 'BOSS';
@@ -132,8 +132,11 @@ export const RELICS = {
   },
   masterball: {
     ko: '마스터볼', icon: 'master-ball', rarity: BOSS,
-    desc: '파티 자리가 하나 늘고, 야생 포켓몬 포획에 실패하지 않는다.',
-    extraPartySlot: () => true, alwaysCatch: true,
+    // 원래 "파티 자리 +1" 이었는데 동료가 1명으로 고정되면서 개편했다.
+    // 교체가 이 게임의 중심 기술이므로, 교체의 최대 비용(쌓아 둔 방어도)을
+    // 없애 주는 것이 보스 도구다운 무게다.
+    desc: '포켓몬을 교체해도 방어도가 사라지지 않는다.',
+    keepBlockOnSwitch: true,
   },
 };
 
