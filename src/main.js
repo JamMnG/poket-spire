@@ -20,6 +20,7 @@ import { monImg } from './render/pokemonSprites.js';
 import { randomSeed } from './core/rng.js';
 import { initStage } from './ui/stage.js';
 import * as SAVE from './core/save.js';
+import { BUILD, BUILD_NOTE } from './core/version.js';
 import * as LOBBY from './ui/lobbyView.js';
 import { createSession } from './net/session.js';
 
@@ -64,6 +65,7 @@ function renderTopbars() {
       el('button.tb-btn', { text: `덱 ${R.deck.length}`, onclick: () => OV.showDeck(run) }),
       el('div.tb-floor', { text: `${act.n}막 ${floor ? floor + '층' : '출발'}` }),
       el('div.tb-seed', { text: R.seed }),
+      attachTip(el('div.tb-build', { text: BUILD }), `빌드 ${BUILD}<div class="tt-sec">${BUILD_NOTE}</div>`),
     );
   }
 
@@ -98,6 +100,10 @@ function renderTitle() {
   row.hidden = !data;
   if (data) $('#resume-info').textContent = SAVE.describe(data);
   $('#btn-start').textContent = data ? '새로 시작한다' : '모험을 시작한다';
+
+  // 지금 돌고 있는 빌드를 화면에 박아 둔다 — 캐시인지 아닌지를 눈으로 가른다
+  const stamp = $('#build-stamp');
+  if (stamp) { stamp.textContent = `빌드 ${BUILD} · ${BUILD_NOTE}`; }
 }
 
 // 시그니처 카드 이름만 필요해서 데이터 표를 직접 읽는다

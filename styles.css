@@ -1080,3 +1080,10 @@ body.is-portrait #app { visibility: hidden; }
 
 /* ── 타이틀: 시드 줄이 버튼과 같은 높이의 부품으로 보이게 ── */
 .seed-row input:focus { border-color: var(--gold); outline: none; }
+
+/* 빌드 도장 — "고쳤다는데 그대로다" 를 캐시와 가르는 표시 (core/version.js) */
+.build-stamp { margin-top: 10px; font-size: 11px; color: #5a4c3c; letter-spacing: .5px; }
+.tb-build {
+  font-size: 10.5px; color: #6f6252; font-weight: 800;
+  padding: 2px 6px; border-radius: 4px; border: 1px solid #3c2f20; cursor: help;
+}

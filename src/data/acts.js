@@ -31,8 +31,8 @@ export const ACTS = [
     name: '상록의 숲',
     blurb: '풀숲에서 부스럭거리는 것들.',
     floors: 15,
-    hpMul: 0.98, hpRamp: 0.75,
-    dmgMul: 0.90, dmgRamp: 0.52,
+    hpMul: 0.88, hpRamp: 0.66,
+    dmgMul: 0.80, dmgRamp: 0.44,
     // 이 막에서 야생으로 만나 잡을 수 있는 종
     catchable: ['pikachu', 'rattata', 'pidgey', 'sandshrew', 'zubat', 'caterpie', 'vulpix'],
     weak:   [['rattata'], ['pidgey'], ['caterpie', 'weedle'], ['rattata', 'rattata']],
@@ -53,8 +53,8 @@ export const ACTS = [
     name: '달의 신전',
     blurb: '월장석이 박힌 동굴. 빛이 닿지 않는 곳에서 무언가 웃는다.',
     floors: 16,
-    hpMul: 1.12, hpRamp: 0.58,
-    dmgMul: 1.04, dmgRamp: 0.40,
+    hpMul: 1.02, hpRamp: 0.52,
+    dmgMul: 0.94, dmgRamp: 0.36,
     catchable: ['geodude', 'machop', 'abra', 'gastly', 'poliwag', 'magnemite'],
     weak:   [['diglett', 'diglett'], ['paras'], ['zubat', 'zubat']],
     normal: [
@@ -71,8 +71,8 @@ export const ACTS = [
     name: '첨탑',
     blurb: '끝까지 오른 자만 만나는 것들이 기다린다.',
     floors: 17,
-    hpMul: 1.48, hpRamp: 0.62,
-    dmgMul: 1.32, dmgRamp: 0.48,
+    hpMul: 1.35, hpRamp: 0.57,
+    dmgMul: 1.18, dmgRamp: 0.44,
     // 3막 전용 5종 — 여기까지 온 값이다
     catchable: ['scyther', 'pinsir', 'electabuzz', 'magmar', 'jynx'],
     weak:   [['electabuzz'], ['magmar'], ['jynx']],
@@ -131,3 +131,25 @@ export const PLAYER_SCALE = {
 // 죽었다 — 1막 첫 층은 어차피 각자 카드 열 장짜리 덱이라 인원수가
 // 늘어도 별로 안 세지기 때문이다. 그래서 HP 를 크게, 피해는 덜 올렸다.
 export const scaleFor = (n) => PLAYER_SCALE[Math.min(3, Math.max(1, n | 0))] || PLAYER_SCALE[1];
+
+/**
+ * 방 종류 배율 — 막 배율 **위에** 곱한다.
+ *
+ * ★ 왜 필요했나: 엘리트를 HP 로만 키웠더니 "긴 일반 전투"가 됐다.
+ *   1막 기준 일반 HP53·턴당17 대 엘리트 HP113·턴당23 — 몸은 두 배인데
+ *   때리는 힘이 거의 같으니, 방어 카드를 쥔 쪽에서는 오래 걸릴 뿐 위험하지
+ *   않았다. 슬더스의 엘리트가 무서운 건 체력이 아니라 **한 턴에 훅 들어오는
+ *   것**이기 때문이다. 그래서 엘리트는 HP 보다 피해를 크게 올린다.
+ *
+ * ★ 그리고 보스가 엘리트보다 약했다(1막 보스 HP93·턴당18 < 엘리트 113·23).
+ *   엘리트에 부하를 붙이면서 보스는 그대로 뒀기 때문이다. 막의 마지막이
+ *   그 앞 방보다 쉬우면 곡선이 거꾸로 선다.
+ */
+export const ROOM_SCALE = {
+  MONSTER: { hp: 1,    dmg: 1    },
+  ELITE:   { hp: 1.08, dmg: 1.22 },
+  BOSS:    { hp: 1.45, dmg: 1.34 },
+};
+// 방 배율을 새로 얹은 만큼 위의 막 배율은 같이 내렸다 — 둘을 곱한 값이
+// 최종 난이도다. 막 배율만 보고 "약해졌네" 하고 되돌리면 안 된다.
+export const roomScale = (kind) => ROOM_SCALE[kind] || ROOM_SCALE.MONSTER;

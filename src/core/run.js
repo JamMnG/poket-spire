@@ -13,7 +13,7 @@ import { createStreams, randomSeed } from './rng.js';
 import { POKEMON, createMember } from '../data/pokemon.js';
 import { CARDS, POOL_IDS, makeCard, reviveCard } from '../data/cards.js';
 import { RELICS, availableRelics, sumField } from '../data/relics.js';
-import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD, scaleFor } from '../data/acts.js';
+import { ACTS, actOf, ACT_COUNT, ACT_CLEAR_REWARD, scaleFor, roomScale } from '../data/acts.js';
 import { generateMap, reachableFrom } from '../data/mapGen.js';
 import { pickEvent } from '../data/events.js';
 
@@ -241,14 +241,15 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
   const actMul = (kind) => {
     const a = actOf(R.act);
     const pl = scaleFor(R.players.length);
+    const rm = roomScale(kind);
     // 보스는 램프를 안 받는다. 어차피 막 꼭대기에만 있어서 진행도가 늘 1이고,
     // 거기에 램프까지 곱하면 수치가 두 번 올라 벽이 된다 — 그렇게 뒀더니
     // 24판 중 16판이 1막 보스에서 끝났다. 보스 수치는 enemies.js 에 "막
     // 마지막에 만나는 것" 기준으로 적혀 있으니 막 배율만 곱한다.
     const p = kind === 'BOSS' ? 0 : Math.min(1, R.visitedFloors / Math.max(1, a.floors - 1));
     return {
-      hpMul: a.hpMul * (1 + (a.hpRamp ?? 0) * p) * pl.hp,
-      dmgMul: a.dmgMul * (1 + (a.dmgRamp ?? 0) * p) * pl.dmg,
+      hpMul: a.hpMul * (1 + (a.hpRamp ?? 0) * p) * pl.hp * rm.hp,
+      dmgMul: a.dmgMul * (1 + (a.dmgRamp ?? 0) * p) * pl.dmg * rm.dmg,
     };
   };
 
