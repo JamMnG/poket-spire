@@ -342,6 +342,10 @@ export function createCombatView({ combat, onFinish }) {
 
     endTurnBtn.disabled = S.phase !== 'PLAYER' || S.busy || playing;
     endTurnBtn.textContent = S.phase === 'ENEMY' ? '적의 턴…' : '턴 종료';
+    // 화면 전체가 단계를 안다 — 적 턴에는 아레나가 살짝 어두워지고
+    // 턴 종료 버튼이 숨을 죽인다 (styles.css [data-phase])
+    const screen = document.getElementById('screen-combat');
+    if (screen) screen.dataset.phase = S.phase;
   }
 
   function renderLog() {

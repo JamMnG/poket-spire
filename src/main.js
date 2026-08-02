@@ -363,7 +363,13 @@ function startCombat(roomType, snap = null) {
     rng: run.state.streams.combat,
     // 카드 한 장 낼 때마다 적어 둔다. 턴 경계에서만 적으면 "긴 턴을 다 짜
     // 놓고 탭을 닫았다" 가 통째로 날아간다. 쓰기는 1ms 안쪽이라 부담이 없다.
-    onChange: () => { view?.render(); renderTopbars(); save(); },
+    // 단계 표시는 여기서 동기로 찍는다 — view.render 는 rAF 로 미뤄지는데,
+    // 적 턴의 어두워지는 연출은 턴이 도는 그 순간 걸려야 의미가 있다.
+    onChange: () => {
+      const scr = document.getElementById('screen-combat');
+      if (scr && combat) scr.dataset.phase = combat.state.phase;
+      view?.render(); renderTopbars(); save();
+    },
     onFx: (e) => view?.playFx(e),
   });
 
@@ -505,6 +511,24 @@ window.addEventListener('resize', () => view?.render());
 
 // 콘솔에서 상태를 들여다볼 수 있게
 // 콘솔·테스트에서 흐름을 직접 태울 수 있게 열어 둔다
+// ── 화면 캡처용 자동 진행 (?auto=combat) ─────────────────────
+// 헤드리스 크롬으로 스크린샷을 찍을 때 쓴다. 사람 손이 없으므로
+// 시드 고정으로 런을 만들고 첫 전투 방까지 걸어 들어간다.
+(() => {
+  const auto = new URLSearchParams(location.search).get('auto');
+  if (!auto) return;
+  setTimeout(() => {
+    SAVE.clearSave();
+    run = createRun({ seed: 'SCREENSHOT', starterId: 'squirtle' });
+    refreshMap();
+    if (auto === 'combat' || auto === 'reward') {
+      const n = [...document.querySelectorAll('.mnode.is-open')];
+      const pick = n.find((e) => e.className.includes('t-MONSTER')) || n[0];
+      pick && pick.click();
+    }
+  }, 400);
+})();
+
 window.__game = {
   get run() { return run; },
   get combat() { return combat; },

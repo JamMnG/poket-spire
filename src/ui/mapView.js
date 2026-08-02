@@ -33,6 +33,16 @@ export function renderMap(run, onPick) {
   const act = run.act();
   const head = document.querySelector('.map-head h2');
   if (head) head.textContent = `${act.n}막 · ${act.name}`;
+
+  // 범례 — 항상 비어 있던 칸이다. 아이콘과 이름을 붙여 준다
+  const legend = document.querySelector('.map-legend');
+  if (legend && !legend.childElementCount) {
+    mount(legend, ...['MONSTER', 'ELITE', 'EVENT', 'SHOP', 'REST', 'TREASURE', 'BOSS'].map((t) =>
+      el('span.legend-chip', {}, [
+        el('span.legend-ic', { html: roomIcon(t) }),
+        el('span', { text: ROOM[t].ko }),
+      ])));
+  }
   const nodesEl = $('#map-nodes');
   const canvas = $('#map-canvas');
 

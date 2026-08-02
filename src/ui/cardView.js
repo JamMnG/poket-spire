@@ -56,6 +56,9 @@ export function cardEl(inst, opts = {}) {
   }, kids.filter(Boolean));
 
   if (c.upgraded) node.classList.add('card-upg');
+  // 등급 테두리 — 손패에서 레어가 한눈에 튀어야 "이걸 언제 쓰지"가 생각난다
+  node.classList.add(`r-${(c.rarity || 'COMMON').toLowerCase()}`);
+  if (c.exhaust) node.classList.add('is-exhaust');
   if (opts.unplayable) node.classList.add('is-unplayable');
   if (opts.picked) node.classList.add('is-picked');
   return node;

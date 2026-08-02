@@ -108,7 +108,7 @@ export const CARDS = {
     //   것이었다. 버그를 고치자 방어도가 막기도 하고 딜도 되는 이중 이득이
     //   되어, 90판에서 꼬부기 18승 · 파이리 3승 · 이상해씨 4승이 나왔다.
     //   그래서 값을 붙였다 — 방어도 전부를 얹되, 절반을 내놓는다.
-    v: { cost: 1, base: 3, mult: 1 }, vUp: { base: 6, mult: 1 },
+    v: { cost: 1, base: 4, mult: 1 }, vUp: { base: 7, mult: 1 },
     build: (v) => [
       { op: 'damageScaled', base: v.base, per: 'BLOCK', mult: v.mult },
       { op: 'loseBlockRatio', ratio: 0.5 },
@@ -126,7 +126,7 @@ export const CARDS = {
   // 소유 포켓몬이 기절하면 쓸 수 없다. 그래서 선두를 지키는 이유가 된다.
   scratch: {
     ko: '할퀴기', type: 'NORMAL', kind: A, rarity: B, target: 'ENEMY',
-    v: { cost: 1, dmg: 8 }, vUp: { dmg: 11 },
+    v: { cost: 1, dmg: 7 }, vUp: { dmg: 10 },
     build: (v) => [{ op: 'damage', power: v.dmg }],
     text: (v) => `${v.dmg}의 피해를 준다.`,
   },
@@ -180,9 +180,13 @@ export const CARDS = {
   },
   defensecurl: {
     ko: '웅크리기', type: null, kind: S, rarity: B, target: 'SELF',
-    v: { cost: 0, blk: 4, def: 1 }, vUp: { blk: 6, def: 1 },
-    build: (v) => [{ op: 'block', amount: v.blk }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }],
-    text: (v) => `방어도 ${v.blk}. 방어 랭크 +${v.def}.`,
+    // 0코 영구 방어 랭크는 공짜 효과라 랭크는 강화 뒤에만 준다 (껍질에숨기와 같은 규칙)
+    v: { cost: 0, blk: 3, def: 0 }, vUp: { blk: 5, def: 1 },
+    build: (v) => [
+      { op: 'block', amount: v.blk },
+      ...(v.def ? [{ op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }] : []),
+    ],
+    text: (v) => (v.def ? `방어도 ${v.blk}. 방어 랭크 +${v.def}.` : `방어도 ${v.blk}.`),
   },
   poisonfang: {
     ko: '독니', type: 'POISON', kind: A, rarity: B, target: 'ENEMY',
@@ -216,7 +220,7 @@ export const CARDS = {
   },
   harden: {
     ko: '단단해지기', type: null, kind: S, rarity: B, target: 'SELF',
-    v: { cost: 1, blk: 3, def: 1 }, vUp: { blk: 5, def: 2 },
+    v: { cost: 1, blk: 4, def: 1 }, vUp: { blk: 6, def: 2 },
     build: (v) => [{ op: 'block', amount: v.blk }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }],
     text: (v) => `방어도 ${v.blk}. 방어 랭크 +${v.def}.`,
   },
@@ -407,15 +411,18 @@ export const CARDS = {
   // ── 무속성 · 노말 (파티 구성과 무관하게 항상 등장) ────────
   glare: {
     ko: '노려보기', type: null, kind: S, rarity: C, target: 'ENEMY',
-    v: { cost: 0, atk: -1 }, vUp: { atk: -2 },
+    // 랭크는 전투 내내 남는다 — 0코 영구 디버프는 공짜 효과지 카드가 아니다
+    v: { cost: 1, atk: -1 }, vUp: { atk: -2 },
     build: (v) => [{ op: 'rank', stat: 'ATK', delta: v.atk, to: 'enemy' }],
     text: (v) => `상대 공격 랭크 ${v.atk}.`,
   },
   protect: {
-    ko: '방어막', type: null, kind: S, rarity: C, target: 'SELF',
-    v: { cost: 1, blk: 10 }, vUp: { blk: 14 },
+    ko: '방어막', type: null, kind: S, rarity: C, target: 'SELF', exhaust: true,
+    // "그냥 큰 방어"라 방어·껍질에숨기의 상위호환일 뿐이었다.
+    // 한 판에 한 번뿐인 비상 버튼으로 — 큰 한 방이 예고된 턴에 아껴 쓴다.
+    v: { cost: 1, blk: 14 }, vUp: { blk: 19 },
     build: (v) => [{ op: 'block', amount: v.blk }],
-    text: (v) => `방어도 ${v.blk}.`,
+    text: (v) => `방어도 ${v.blk}. 소멸.`,
   },
   helpinghand: {
     ko: '도우미', type: null, kind: S, rarity: U, target: 'SELF',
@@ -425,7 +432,7 @@ export const CARDS = {
   },
   substitute: {
     ko: '대타출동', type: null, kind: S, rarity: U, target: 'SELF',
-    v: { cost: 2, blk: 16 }, vUp: { blk: 22 },
+    v: { cost: 2, blk: 17 }, vUp: { blk: 23 },
     build: (v) => [{ op: 'block', amount: v.blk }],
     text: (v) => `방어도 ${v.blk}.`,
   },
@@ -800,7 +807,7 @@ export const CARDS = {
   },
   rapidspin: {
     ko: '고속스핀', type: 'NORMAL', kind: A, rarity: C, target: 'ENEMY',
-    v: { cost: 1, dmg: 6, blk: 5 }, vUp: { dmg: 9, blk: 7 },
+    v: { cost: 1, dmg: 5, blk: 5 }, vUp: { dmg: 8, blk: 7 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'block', amount: v.blk }],
     text: (v) => `${v.dmg}의 피해. 방어도 ${v.blk}.`,
   },
