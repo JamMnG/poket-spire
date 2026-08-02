@@ -176,9 +176,10 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
   };
   const burnMul = () => relics.reduce((acc, id) => acc * (RELICS[id]?.burnMul || 1), 1);
 
-  /** 날씨가 더하는 위력 */
+  /** 날씨가 더하는 위력. 쾌청은 불꽃과 풀(광합성 계열) 둘 다 밀어 준다 */
   const weatherAdd = (card) =>
-    (card.type === 'FIRE' ? S.powers.SUN : 0) + (card.type === 'WATER' ? S.powers.RAIN : 0);
+    ((card.type === 'FIRE' || card.type === 'GRASS') ? S.powers.SUN : 0)
+    + (card.type === 'WATER' ? S.powers.RAIN : 0);
 
   // ── HP 조작 ──────────────────────────────────────────────
   function healMember(m, n) {

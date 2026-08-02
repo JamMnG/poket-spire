@@ -125,10 +125,11 @@ export const CARDS = {
   // ══ 포켓몬 합류 카드 ══════════════════════════════════════
   // 소유 포켓몬이 기절하면 쓸 수 없다. 그래서 선두를 지키는 이유가 된다.
   scratch: {
+    // 몸통박치기(같은 1코 기본기 6)의 상위호환이었다 — 발톱답게 두 번
     ko: '할퀴기', type: 'NORMAL', kind: A, rarity: B, target: 'ENEMY',
-    v: { cost: 1, dmg: 7 }, vUp: { dmg: 10 },
-    build: (v) => [{ op: 'damage', power: v.dmg }],
-    text: (v) => `${v.dmg}의 피해를 준다.`,
+    v: { cost: 1, dmg: 3, hits: 2 }, vUp: { dmg: 5, hits: 2 },
+    build: (v) => [{ op: 'damage', power: v.dmg, hits: v.hits }],
+    text: (v) => `${v.dmg}의 피해를 ${v.hits}번 준다.`,
   },
   watergun: {
     ko: '물대포', type: 'WATER', kind: A, rarity: B, target: 'ENEMY',
@@ -167,7 +168,8 @@ export const CARDS = {
     text: (v) => `${v.dmg}의 피해를 준다.`,
   },
   sandattack: {
-    ko: '모래뿌리기', type: 'GROUND', kind: S, rarity: B, target: 'ENEMY',
+    // 0코 영구 디버프 금지 규칙 — 반복은 안 되고, 한 번은 된다(소멸)
+    ko: '모래뿌리기', type: 'GROUND', kind: S, rarity: B, target: 'ENEMY', exhaust: true,
     v: { cost: 0, atk: -1 }, vUp: { atk: -2 },
     build: (v) => [{ op: 'rank', stat: 'ATK', delta: v.atk, to: 'enemy' }],
     text: (v) => `상대 공격 랭크 ${v.atk}.`,
@@ -315,7 +317,7 @@ export const CARDS = {
     ko: '쾌청', type: 'FIRE', kind: P, rarity: R, target: 'SELF',
     v: { cost: 1, add: 4 }, vUp: { add: 6 },
     build: (v) => [{ op: 'power', id: 'SUN', amount: v.add }],
-    text: (v) => `이 전투 동안 불꽃 기술의 위력이 ${v.add} 오른다. 겹쳐 쓰면 그만큼 더 쌓인다.`,
+    text: (v) => `이 전투 동안 불꽃·풀 기술의 위력이 ${v.add} 오른다. 겹쳐 쓰면 그만큼 더 쌓인다.`,
   },
 
   // ── 물 ───────────────────────────────────────────────────
@@ -327,7 +329,7 @@ export const CARDS = {
   },
   surf: {
     ko: '파도타기', type: 'WATER', kind: A, rarity: U, target: 'ALL',
-    v: { cost: 2, dmg: 14 }, vUp: { dmg: 18 },
+    v: { cost: 2, dmg: 15 }, vUp: { dmg: 19 },
     build: (v) => [{ op: 'damageAll', power: v.dmg }],
     text: (v) => `모든 적에게 ${v.dmg}의 피해를 준다.`,
   },
@@ -352,10 +354,11 @@ export const CARDS = {
 
   // ── 풀 ───────────────────────────────────────────────────
   razorleaf: {
-    ko: '잎날가르기', type: 'GRASS', kind: A, rarity: C, target: 'ENEMY',
-    v: { cost: 1, dmg: 10 }, vUp: { dmg: 14 },
-    build: (v) => [{ op: 'damage', power: v.dmg }],
-    text: (v) => `${v.dmg}의 피해를 준다.`,
+    // 씨폭탄(같은 1코 커먼 12)의 하위호환이었다 — 원작 더블배틀처럼 전체기로
+    ko: '잎날가르기', type: 'GRASS', kind: A, rarity: C, target: 'ALL',
+    v: { cost: 1, dmg: 8 }, vUp: { dmg: 11 },
+    build: (v) => [{ op: 'damageAll', power: v.dmg }],
+    text: (v) => `모든 적에게 ${v.dmg}의 피해를 준다.`,
   },
   bulletseed: {
     ko: '씨앗기관총', type: 'GRASS', kind: A, rarity: C, target: 'ENEMY',
@@ -370,8 +373,10 @@ export const CARDS = {
     text: (v) => `${v.dmg}의 피해. 준 피해의 절반만큼 HP를 회복한다.`,
   },
   synthesis: {
+    // 자기재생(1코 12)과 같은 모양에 수치만 높아 상위호환이었다.
+    // 2코 큰 회복으로 갈라놓는다 — 싸게 자주(자기재생) vs 크게 한 번(광합성)
     ko: '광합성', type: 'GRASS', kind: S, rarity: U, target: 'SELF', exhaust: true,
-    v: { cost: 1, heal: 14 }, vUp: { heal: 20 },
+    v: { cost: 2, heal: 22 }, vUp: { heal: 30 },
     build: (v) => [{ op: 'heal', amount: v.heal }],
     text: (v) => `HP를 ${v.heal} 회복한다. 소멸.`,
   },
@@ -385,7 +390,7 @@ export const CARDS = {
   // ── 전기 ─────────────────────────────────────────────────
   thunderwave: {
     ko: '전기자석파', type: 'ELECTRIC', kind: S, rarity: U, target: 'ENEMY',
-    v: { cost: 0, par: 2 }, vUp: { par: 3 },
+    v: { cost: 1, par: 2 }, vUp: { par: 3 },
     build: (v) => [{ op: 'status', status: 'PARA', amount: v.par }],
     text: (v) => `마비 ${v.par}.`,
   },
@@ -412,7 +417,7 @@ export const CARDS = {
   glare: {
     ko: '노려보기', type: null, kind: S, rarity: C, target: 'ENEMY',
     // 랭크는 전투 내내 남는다 — 0코 영구 디버프는 공짜 효과지 카드가 아니다
-    v: { cost: 1, atk: -1 }, vUp: { atk: -2 },
+    v: { cost: 1, atk: -2 }, vUp: { atk: -3 },
     build: (v) => [{ op: 'rank', stat: 'ATK', delta: v.atk, to: 'enemy' }],
     text: (v) => `상대 공격 랭크 ${v.atk}.`,
   },
@@ -476,7 +481,7 @@ export const CARDS = {
   // ── 그 밖의 타입 ─────────────────────────────────────────
   poisonpowder: {
     ko: '독가루', type: 'POISON', kind: S, rarity: C, target: 'ENEMY',
-    v: { cost: 1, psn: 4 }, vUp: { psn: 6 },
+    v: { cost: 1, psn: 5 }, vUp: { psn: 7 },
     build: (v) => [{ op: 'status', status: 'POISON', amount: v.psn }],
     text: (v) => `독 ${v.psn}.`,
   },
@@ -506,19 +511,19 @@ export const CARDS = {
   },
   earthquake: {
     ko: '지진', type: 'GROUND', kind: A, rarity: U, target: 'ALL',
-    v: { cost: 2, dmg: 17 }, vUp: { dmg: 22 },
+    v: { cost: 2, dmg: 15 }, vUp: { dmg: 19 },
     build: (v) => [{ op: 'damageAll', power: v.dmg }],
     text: (v) => `모든 적에게 ${v.dmg}의 피해를 준다.`,
   },
   psychicmove: {
     ko: '사이코키네시스', type: 'PSYCHIC', kind: A, rarity: U, target: 'ENEMY',
-    v: { cost: 2, dmg: 17, def: -1 }, vUp: { dmg: 22, def: -1 },
+    v: { cost: 2, dmg: 16, def: -1 }, vUp: { dmg: 21, def: -1 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'enemy' }],
     text: (v) => `${v.dmg}의 피해. 상대 방어 랭크 ${v.def}.`,
   },
   shadowball: {
     ko: '섀도볼', type: 'GHOST', kind: A, rarity: U, target: 'ENEMY',
-    v: { cost: 2, dmg: 15, def: -1 }, vUp: { dmg: 20, def: -1 },
+    v: { cost: 2, dmg: 16, def: -1 }, vUp: { dmg: 21, def: -1 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'enemy' }],
     text: (v) => `${v.dmg}의 피해. 상대 방어 랭크 ${v.def}.`,
   },
@@ -548,7 +553,7 @@ export const CARDS = {
   },
   rockslide: {
     ko: '스톤샤워', type: 'ROCK', kind: A, rarity: U, target: 'ALL',
-    v: { cost: 2, dmg: 14 }, vUp: { dmg: 18 },
+    v: { cost: 2, dmg: 15 }, vUp: { dmg: 19 },
     build: (v) => [{ op: 'damageAll', power: v.dmg }],
     text: (v) => `모든 적에게 ${v.dmg}의 피해를 준다.`,
   },
@@ -656,7 +661,7 @@ export const CARDS = {
   },
   seedbomb: {
     ko: '씨폭탄', type: 'GRASS', kind: A, rarity: C, target: 'ENEMY',
-    v: { cost: 1, dmg: 12 }, vUp: { dmg: 16 },
+    v: { cost: 1, dmg: 13 }, vUp: { dmg: 17 },
     build: (v) => [{ op: 'damage', power: v.dmg }],
     text: (v) => `${v.dmg}의 피해를 준다.`,
   },
@@ -691,7 +696,8 @@ export const CARDS = {
     text: (v) => `${v.dmg}의 피해를 준다.`,
   },
   dragonbreath: {
-    ko: '용의숨결', type: 'DRAGON', kind: A, rarity: C, target: 'ENEMY',
+    // DRAGON 게이트로 죽어 있던 카드 — 리자몽이 쓰는 기술이니 불꽃 풀에 넣는다
+    ko: '용의숨결', type: 'FIRE', kind: A, rarity: C, target: 'ENEMY',
     v: { cost: 1, dmg: 9, par: 1 }, vUp: { dmg: 12, par: 1 },
     build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'PARA', amount: v.par }],
     text: (v) => `${v.dmg}의 피해. 마비 ${v.par}.`,
@@ -722,7 +728,7 @@ export const CARDS = {
   },
   powergem: {
     ko: '파워젬', type: 'ROCK', kind: A, rarity: U, target: 'ENEMY',
-    v: { cost: 2, dmg: 15 }, vUp: { dmg: 20 },
+    v: { cost: 2, dmg: 18 }, vUp: { dmg: 24 },
     build: (v) => [{ op: 'damage', power: v.dmg }],
     text: (v) => `${v.dmg}의 피해를 준다.`,
   },
@@ -751,10 +757,12 @@ export const CARDS = {
     text: (v) => `${v.dmg}의 피해를 ${v.hits}번 준다.`,
   },
   dragonrage: {
-    ko: '용의분노', type: 'DRAGON', kind: A, rarity: C, target: 'ENEMY',
-    // 고정 피해라 상성·자속·랭크를 전부 무시한다. 불꽃이 안 통하는 상대
-    // (물·바위 계열)를 만났을 때 파이리가 쥘 수 있는 답이다.
-    v: { cost: 1, dmg: 12 }, vUp: { dmg: 18 },
+    // ★ 원래 DRAGON 타입이었는데, 보상 풀은 파티 타입으로 걸러지고 드래곤
+    //   파티는 존재하지 않아 **한 번도 등장할 수 없는 죽은 카드**였다.
+    //   무속성으로 풀어 누구나 집게 하고, 나이트헤드(1코 12 반복)와
+    //   겹치지 않게 소멸 한 방으로 갈라놓는다.
+    ko: '용의분노', type: null, kind: A, rarity: C, target: 'ENEMY', exhaust: true,
+    v: { cost: 1, dmg: 15 }, vUp: { dmg: 21 },
     build: (v) => [{ op: 'fixed', amount: v.dmg }],
     text: (v) => `상성과 랭크를 무시하고 ${v.dmg}의 피해를 준다.`,
   },
@@ -804,10 +812,11 @@ export const CARDS = {
 
   // ── 꼬부기 → 어니부기 → 거북왕 ──────────────────────────
   bubble: {
+    // 아쿠아제트(0코 6 단타)의 하위호환이었다 — 다중타로 모양을 가른다
     ko: '거품', type: 'WATER', kind: A, rarity: C, target: 'ENEMY',
-    v: { cost: 0, dmg: 5 }, vUp: { dmg: 8 },
-    build: (v) => [{ op: 'damage', power: v.dmg }],
-    text: (v) => `${v.dmg}의 피해를 준다.`,
+    v: { cost: 0, dmg: 2, hits: 2 }, vUp: { dmg: 3, hits: 2 },
+    build: (v) => [{ op: 'damage', power: v.dmg, hits: v.hits }],
+    text: (v) => `${v.dmg}의 피해를 ${v.hits}번 준다.`,
   },
   rapidspin: {
     ko: '고속스핀', type: 'NORMAL', kind: A, rarity: C, target: 'ENEMY',
@@ -833,10 +842,14 @@ export const CARDS = {
   },
   shellarmor: {
     ko: '조가비갑옷', type: null, kind: P, rarity: U, target: 'SELF',
-    // 꼬부기에게 "안 쓰고 남긴 방어도"의 값을 만들어 준다
-    v: { cost: 1, blk: 3 }, vUp: { blk: 5 },
-    build: (v) => [{ op: 'power', id: 'INGRAIN', amount: v.blk }],
-    text: (v) => `이 전투 동안, 턴이 끝날 때마다 방어도 ${v.blk}를 얻는다.`,
+    // 뿌리박기(라운드마다 5)와 같은 모양에 수치만 낮아 하위호환이었다.
+    // 즉시 방어도 + 지속으로 갈라놓는다 — 지금 급한가, 길게 가는가
+    v: { cost: 1, now: 6, blk: 3 }, vUp: { now: 8, blk: 4 },
+    build: (v) => [
+      { op: 'block', amount: v.now },
+      { op: 'power', id: 'INGRAIN', amount: v.blk },
+    ],
+    text: (v) => `방어도 ${v.now}. 이후 이 전투 동안, 라운드가 끝날 때마다 방어도 ${v.blk}.`,
   },
   irondefensecard: {
     ko: '껍질닫기', type: null, kind: S, rarity: R, target: 'SELF',
@@ -867,20 +880,21 @@ export const CARDS = {
     text: (v) => `마비 ${v.para}. 상대의 공격이 25% 약해진다.`,
   },
   sleeppowder: {
-    ko: '수면가루', type: 'GRASS', kind: S, rarity: C, target: 'ENEMY',
+    ko: '수면가루', type: 'GRASS', kind: S, rarity: U, target: 'ENEMY',
     v: { cost: 1, freeze: 1 }, vUp: { freeze: 2 },
     build: (v) => [{ op: 'status', status: 'FREEZE', amount: v.freeze }],
     text: (v) => `${v.freeze}턴 동안 상대가 행동하지 못한다.`,
   },
   growth: {
-    ko: '성장', type: null, kind: S, rarity: U, target: 'SELF',
-    // 0코였을 때는 낼지 말지를 고민할 이유가 없었다 — 공짜 랭크에 공짜 드로우
-    v: { cost: 1, atk: 1, draw: 1 }, vUp: { atk: 1, draw: 2 },
+    // 명상과 코스트·효과·등급까지 똑같은 카드였다. 0코 소멸 한 방 펌프로
+    // 갈라놓는다 — 칼춤(1코 +2 소멸)의 절반 크기, 절반 값
+    ko: '성장', type: null, kind: S, rarity: U, target: 'SELF', exhaust: true,
+    v: { cost: 0, atk: 1, draw: 0 }, vUp: { atk: 1, draw: 1 },
     build: (v) => [
       { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' },
-      { op: 'draw', amount: v.draw },
+      ...(v.draw ? [{ op: 'draw', amount: v.draw }] : []),
     ],
-    text: (v) => `공격 랭크 +${v.atk}. 카드를 ${v.draw}장 뽑는다.`,
+    text: (v) => `공격 랭크 +${v.atk}.${v.draw ? ` 카드를 ${v.draw}장 뽑는다.` : ''} 소멸.`,
   },
   petaldance: {
     ko: '꽃잎댄스', type: 'GRASS', kind: A, rarity: U, target: 'ENEMY',
@@ -901,9 +915,12 @@ export const CARDS = {
   },
   solarbeam: {
     ko: '솔라빔', type: 'GRASS', kind: A, rarity: R, target: 'ENEMY',
-    v: { cost: 2, dmg: 25 }, vUp: { dmg: 33 },
+    // 리프스톰(24·자기랭크-2)보다 세면서 페널티도 없어 상위호환이었다.
+    // 22로 내리되, 쾌청 보너스를 **실제로** 받게 했다 — 전에는 문구만 있고
+    // 코드가 없는 거짓말이었다 (combat.js weatherAdd 에 풀 타입 추가).
+    v: { cost: 2, dmg: 22 }, vUp: { dmg: 29 },
     build: (v) => [{ op: 'damage', power: v.dmg }],
-    text: (v) => `${v.dmg}의 피해를 준다.`,
+    text: (v) => `${v.dmg}의 피해를 준다. 쾌청이 깔려 있으면 그만큼 더 세진다.`,
   },
   frenzyplant: {
     ko: '하드플랜트', type: 'GRASS', kind: A, rarity: R, target: 'ALL',
