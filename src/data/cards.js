@@ -473,7 +473,8 @@ export const CARDS = {
   },
   bellydrum: {
     ko: '배북', type: null, kind: S, rarity: R, target: 'SELF', exhaust: true,
-    v: { cost: 2, atk: 4 }, vUp: { atk: 5 },
+    // 랭크 상한이 ±4로 내려오면서 +4/+5 는 거짓말이 됐다 (상한에 걸린다)
+    v: { cost: 2, atk: 3 }, vUp: { atk: 4 },
     build: (v) => [{ op: 'loseHpRatio', ratio: 0.5 }, { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' }],
     text: (v) => `현재 HP의 절반을 잃고 공격 랭크 +${v.atk}. 소멸.`,
   },
@@ -930,6 +931,215 @@ export const CARDS = {
       { op: 'statusAll', status: 'POISON', amount: v.psn },
     ],
     text: (v) => `모든 적에게 ${v.dmg}의 피해. 독 ${v.psn}.`,
+  },
+
+  // ══ 카드 풀 확장 (v13) ═══════════════════════════════════
+  // "고유 카드가 늘 같은 것만 나온다"는 피드백 — 타입별 풀을 넓힌다.
+  // 전부 원작(1세대 중심) 기술명이고, 기존 카드와 이름·효과가 겹치지 않게
+  // 상위호환 검사기(tools 참고)를 통과시켰다. 숫자만 다른 복붙은 안 만든다 —
+  // 그건 풀이 넓어진 게 아니라 같은 카드가 이름을 여러 개 가진 것이다.
+
+  // ── 불꽃 ──────────────────────────────────────────────────
+  firepunch: {
+    ko: '불꽃펀치', type: 'FIRE', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 1, dmg: 10, burn: 2 }, vUp: { dmg: 13, burn: 3 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'BURN', amount: v.burn }],
+    text: (v) => `${v.dmg}의 피해. 화상 ${v.burn}.`,
+  },
+  incinerate: {
+    ko: '태우기', type: 'FIRE', kind: A, rarity: C, target: 'ALL',
+    v: { cost: 1, dmg: 6, burn: 1 }, vUp: { dmg: 8, burn: 2 },
+    build: (v) => [{ op: 'damageAll', power: v.dmg }, { op: 'statusAll', status: 'BURN', amount: v.burn }],
+    text: (v) => `모든 적에게 ${v.dmg}의 피해. 화상 ${v.burn}.`,
+  },
+  flaredrive: {
+    ko: '플레어드라이브', type: 'FIRE', kind: A, rarity: R, target: 'ENEMY',
+    v: { cost: 3, dmg: 27, rec: 7 }, vUp: { dmg: 35, rec: 8 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'recoil', amount: v.rec }],
+    text: (v) => `${v.dmg}의 피해. 반동으로 ${v.rec}의 피해를 입는다.`,
+  },
+
+  // ── 물 ────────────────────────────────────────────────────
+  waterfall: {
+    ko: '폭포오르기', type: 'WATER', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 14, par: 1 }, vUp: { dmg: 18, par: 1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'PARA', amount: v.par }],
+    text: (v) => `${v.dmg}의 피해. 마비 ${v.par}.`,
+  },
+  dive: {
+    ko: '다이빙', type: 'WATER', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 13, blk: 6 }, vUp: { dmg: 17, blk: 8 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'block', amount: v.blk }],
+    text: (v) => `${v.dmg}의 피해. 방어도 ${v.blk}.`,
+  },
+  shellsmash: {
+    ko: '껍질깨기', type: null, kind: S, rarity: R, target: 'SELF',
+    // 칼춤(+2 소멸)과 달리 소멸이 아니다 — 대신 방어를 값으로 치른다
+    v: { cost: 1, atk: 2, def: -1 }, vUp: { atk: 2, def: 0 },
+    build: (v) => [
+      { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' },
+      ...(v.def ? [{ op: 'rank', stat: 'DEF', delta: v.def, to: 'self' }] : []),
+    ],
+    text: (v) => `공격 랭크 +${v.atk}.${v.def ? ` 방어 랭크 ${v.def}.` : ''}`,
+  },
+
+  // ── 풀 ────────────────────────────────────────────────────
+  powerwhip: {
+    ko: '파워휩', type: 'GRASS', kind: A, rarity: R, target: 'ENEMY',
+    v: { cost: 3, dmg: 28 }, vUp: { dmg: 36 },
+    build: (v) => [{ op: 'damage', power: v.dmg }],
+    text: (v) => `${v.dmg}의 피해를 준다.`,
+  },
+  leafblade: {
+    ko: '리프블레이드', type: 'GRASS', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 16, def: -1 }, vUp: { dmg: 21, def: -1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'enemy' }],
+    text: (v) => `${v.dmg}의 피해. 상대 방어 랭크 ${v.def}.`,
+  },
+
+  // ── 독 ────────────────────────────────────────────────────
+  acid: {
+    ko: '애시드', type: 'POISON', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 9, def: -1 }, vUp: { dmg: 12, def: -1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'DEF', delta: v.def, to: 'enemy' }],
+    text: (v) => `${v.dmg}의 피해. 상대 방어 랭크 ${v.def}.`,
+  },
+  poisongas: {
+    ko: '독가스', type: 'POISON', kind: S, rarity: C, target: 'ALL',
+    v: { cost: 1, psn: 3 }, vUp: { psn: 4 },
+    build: (v) => [{ op: 'statusAll', status: 'POISON', amount: v.psn }],
+    text: (v) => `모든 적에게 독 ${v.psn}.`,
+  },
+  crosspoison: {
+    ko: '크로스포이즌', type: 'POISON', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 16, psn: 2 }, vUp: { dmg: 21, psn: 3 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'POISON', amount: v.psn }],
+    text: (v) => `${v.dmg}의 피해. 독 ${v.psn}.`,
+  },
+
+  // ── 전기 ──────────────────────────────────────────────────
+  discharge: {
+    ko: '방전', type: 'ELECTRIC', kind: A, rarity: U, target: 'ALL',
+    v: { cost: 2, dmg: 11, par: 1 }, vUp: { dmg: 14, par: 1 },
+    build: (v) => [{ op: 'damageAll', power: v.dmg }, { op: 'statusAll', status: 'PARA', amount: v.par }],
+    text: (v) => `모든 적에게 ${v.dmg}의 피해. 마비 ${v.par}.`,
+  },
+  charge: {
+    ko: '충전', type: 'ELECTRIC', kind: S, rarity: C, target: 'SELF',
+    v: { cost: 1, blk: 4, en: 1 }, vUp: { blk: 6, en: 1 },
+    build: (v) => [{ op: 'block', amount: v.blk }, { op: 'energyNextTurn', amount: v.en }],
+    text: (v) => `방어도 ${v.blk}. 다음 턴에 에너지를 ${v.en} 더 얻는다.`,
+  },
+
+  // ── 땅·바위 ───────────────────────────────────────────────
+  mudslap: {
+    ko: '진흙뿌리기', type: 'GROUND', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 7, atk: -1 }, vUp: { dmg: 10, atk: -1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'ATK', delta: v.atk, to: 'enemy' }],
+    text: (v) => `${v.dmg}의 피해. 상대 공격 랭크 ${v.atk}.`,
+  },
+  rockblast: {
+    ko: '락블라스트', type: 'ROCK', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 1, dmg: 4, hits: 3 }, vUp: { dmg: 5, hits: 3 },
+    build: (v) => [{ op: 'damage', power: v.dmg, hits: v.hits }],
+    text: (v) => `${v.dmg}의 피해를 ${v.hits}번 준다.`,
+  },
+  stoneedge: {
+    ko: '스톤에지', type: 'ROCK', kind: A, rarity: R, target: 'ENEMY',
+    v: { cost: 2, dmg: 24 }, vUp: { dmg: 31 },
+    build: (v) => [{ op: 'damage', power: v.dmg }],
+    text: (v) => `${v.dmg}의 피해를 준다.`,
+  },
+
+  // ── 비행 ──────────────────────────────────────────────────
+  aerialace: {
+    ko: '제비반환', type: 'FLYING', kind: A, rarity: C, target: 'ENEMY',
+    // 원작의 "반드시 명중" → 상성·랭크를 안 타는 고정 피해로 옮겼다.
+    // 상성을 안 타는 값으로 단타보다 한 수 아래 숫자다
+    v: { cost: 1, dmg: 9 }, vUp: { dmg: 13 },
+    build: (v) => [{ op: 'fixed', amount: v.dmg }],
+    text: (v) => `상성과 랭크를 무시하고 ${v.dmg}의 피해를 준다.`,
+  },
+  hurricane: {
+    ko: '폭풍', type: 'FLYING', kind: A, rarity: R, target: 'ALL',
+    v: { cost: 2, dmg: 16 }, vUp: { dmg: 21 },
+    build: (v) => [{ op: 'damageAll', power: v.dmg }],
+    text: (v) => `모든 적에게 ${v.dmg}의 피해를 준다.`,
+  },
+
+  // ── 에스퍼·고스트 ─────────────────────────────────────────
+  psybeam: {
+    ko: '환상빔', type: 'PSYCHIC', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 9, par: 1 }, vUp: { dmg: 12, par: 1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'PARA', amount: v.par }],
+    text: (v) => `${v.dmg}의 피해. 마비 ${v.par}.`,
+  },
+  barrier: {
+    ko: '배리어', type: 'PSYCHIC', kind: S, rarity: U, target: 'SELF',
+    v: { cost: 1, blk: 10 }, vUp: { blk: 13 },
+    build: (v) => [{ op: 'block', amount: v.blk }],
+    text: (v) => `방어도 ${v.blk}.`,
+  },
+  confuseray: {
+    ko: '이상한빛', type: 'GHOST', kind: S, rarity: U, target: 'ENEMY',
+    v: { cost: 1, par: 2 }, vUp: { par: 3 },
+    build: (v) => [{ op: 'status', status: 'PARA', amount: v.par }],
+    text: (v) => `마비 ${v.par}.`,
+  },
+
+  // ── 벌레·얼음·격투 ────────────────────────────────────────
+  twineedle: {
+    ko: '더블니들', type: 'BUG', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 4, hits: 2, psn: 1 }, vUp: { dmg: 6, hits: 2, psn: 1 },
+    build: (v) => [
+      { op: 'damage', power: v.dmg, hits: v.hits },
+      { op: 'status', status: 'POISON', amount: v.psn },
+    ],
+    text: (v) => `${v.dmg}의 피해를 ${v.hits}번. 독 ${v.psn}.`,
+  },
+  silverwind: {
+    ko: '은빛바람', type: 'BUG', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 12, atk: 1 }, vUp: { dmg: 16, atk: 1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'ATK', delta: v.atk, to: 'self' }],
+    text: (v) => `${v.dmg}의 피해. 공격 랭크 +${v.atk}.`,
+  },
+  aurorabeam: {
+    ko: '오로라빔', type: 'ICE', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 1, dmg: 10, atk: -1 }, vUp: { dmg: 13, atk: -1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'rank', stat: 'ATK', delta: v.atk, to: 'enemy' }],
+    text: (v) => `${v.dmg}의 피해. 상대 공격 랭크 ${v.atk}.`,
+  },
+  machpunch: {
+    ko: '마하펀치', type: 'FIGHT', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 0, dmg: 4 }, vUp: { dmg: 6 },
+    build: (v) => [{ op: 'damage', power: v.dmg }],
+    text: (v) => `${v.dmg}의 피해를 준다.`,
+  },
+
+  // ── 노말·무속성 ───────────────────────────────────────────
+  hyperbeam: {
+    ko: '파괴광선', type: 'NORMAL', kind: A, rarity: R, target: 'ENEMY',
+    v: { cost: 3, dmg: 33, en: -1 }, vUp: { dmg: 42, en: -1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'energyNextTurn', amount: v.en }],
+    text: (v) => `${v.dmg}의 피해. 다음 턴에 에너지를 1 덜 얻는다.`,
+  },
+  doubleedge: {
+    ko: '이판사판태클', type: 'NORMAL', kind: A, rarity: U, target: 'ENEMY',
+    v: { cost: 2, dmg: 20, rec: 5 }, vUp: { dmg: 26, rec: 6 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'recoil', amount: v.rec }],
+    text: (v) => `${v.dmg}의 피해. 반동으로 ${v.rec}의 피해를 입는다.`,
+  },
+  bodyslam: {
+    ko: '누르기', type: 'NORMAL', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 2, dmg: 14, par: 1 }, vUp: { dmg: 18, par: 1 },
+    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'PARA', amount: v.par }],
+    text: (v) => `${v.dmg}의 피해. 마비 ${v.par}.`,
+  },
+  agility: {
+    ko: '고속이동', type: null, kind: S, rarity: U, target: 'SELF',
+    v: { cost: 1, draw: 1, en: 1 }, vUp: { draw: 2, en: 1 },
+    build: (v) => [{ op: 'draw', amount: v.draw }, { op: 'energyNextTurn', amount: v.en }],
+    text: (v) => `카드를 ${v.draw}장 뽑는다. 다음 턴에 에너지를 ${v.en} 더 얻는다.`,
   },
 };
 

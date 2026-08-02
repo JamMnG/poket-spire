@@ -472,6 +472,38 @@ const SHAPE = {
 // ── 기술 → 형태 ──────────────────────────────────────────────
 // 여기 없는 카드는 아래 타입 기본값으로 떨어진다.
 const MOVE_ART = {
+  // ── v13 확장 카드 ──
+  // 규칙: 그림 지문 = 모양 + 타입색. 같은 타입 안에서 모양이 겹치면 안 된다.
+  firepunch: 'punch',      // FIRE punch — 격투 punch 와는 색이 다르다
+  incinerate: 'claw',      // FIRE claw 자리 비어 있음
+  flaredrive: 'dash',
+  waterfall: 'rockfall',   // 물줄기가 쏟아지는 모양
+  dive: 'curl',
+  shellsmash: 'gem',       // 깨진 껍질 조각
+  powerwhip: 'tail',
+  leafblade: 'slash',
+  acid: 'spray',
+  poisongas: 'wind',
+  crosspoison: 'sword',
+  discharge: 'burst',
+  charge: 'ring',
+  mudslap: 'splash',
+  rockblast: 'multi',
+  stoneedge: 'horn',
+  aerialace: 'baton',       // FLYING dash — 불꽃 dash 와 색이 다르다
+  hurricane: 'whirl',
+  psybeam: 'beam',
+  barrier: 'barrier',
+  confuseray: 'moon',
+  twineedle: 'claw',       // BUG horn — megahorn 은 ROCK? 아니 BUG... 아래에서 검사기로 확정
+  silverwind: 'wind',
+  aurorabeam: 'pulse',      // ICE beam — icebeam 과 겹치면 검사기가 잡는다
+  machpunch: 'dash',
+  hyperbeam: 'boltbig',
+  doubleedge: 'wheel',
+  bodyslam: 'drum',
+  agility: 'sonic',
+
   // ── 스타터 3계열 전용 카드 ──
   // 없는 id 는 타입 기본 모양으로 떨어지는데(544줄), 그러면 새 카드 스무 장이
   // 전부 같은 그림이 된다. "기술마다 그림이 다르다"가 이 게임 카드의 규칙이라
@@ -495,7 +527,7 @@ const MOVE_ART = {
 
   // 쏘기
   ember: 'spray', watergun: 'spray', flamethrower: 'beam', hydropump: 'beam',
-  icebeam: 'beam', thunderbolt: 'beam', chargebeam: 'charge', dragonbreath: 'spray',
+  icebeam: 'beam', thunderbolt: 'beam', chargebeam: 'charge', dragonbreath: 'sonic',
   fireblast: 'burst', eruption: 'eruption', heatwave: 'wave', surf: 'wave', blizzard: 'blizzard',
   icywind: 'wind', gust: 'wind', fly: 'wing', bravebird: 'dash',
   thundershock: 'bolt', thunder: 'boltbig', spark: 'sparks', thunderwave: 'pulse', waterpulse: 'pulse',

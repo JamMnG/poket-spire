@@ -31,8 +31,8 @@ export const ACTS = [
     name: '상록의 숲',
     blurb: '풀숲에서 부스럭거리는 것들.',
     floors: 15,
-    hpMul: 0.80, hpRamp: 0.58,
-    dmgMul: 0.72, dmgRamp: 0.38,
+    hpMul: 0.77, hpRamp: 0.55,
+    dmgMul: 0.69, dmgRamp: 0.36,
     // 이 막에서 야생으로 만나 잡을 수 있는 종
     catchable: ['pikachu', 'rattata', 'pidgey', 'sandshrew', 'zubat', 'caterpie', 'vulpix'],
     weak:   [['rattata'], ['pidgey'], ['caterpie', 'weedle'], ['rattata', 'rattata']],
@@ -57,8 +57,8 @@ export const ACTS = [
     name: '달의 신전',
     blurb: '월장석이 박힌 동굴. 빛이 닿지 않는 곳에서 무언가 웃는다.',
     floors: 16,
-    hpMul: 0.93, hpRamp: 0.46,
-    dmgMul: 0.85, dmgRamp: 0.33,
+    hpMul: 0.88, hpRamp: 0.43,
+    dmgMul: 0.80, dmgRamp: 0.31,
     catchable: ['geodude', 'machop', 'abra', 'gastly', 'poliwag', 'magnemite'],
     weak:   [['diglett', 'diglett'], ['paras'], ['zubat', 'zubat']],
     normal: [
@@ -76,8 +76,8 @@ export const ACTS = [
     name: '첨탑',
     blurb: '끝까지 오른 자만 만나는 것들이 기다린다.',
     floors: 17,
-    hpMul: 1.24, hpRamp: 0.52,
-    dmgMul: 1.08, dmgRamp: 0.40,
+    hpMul: 1.17, hpRamp: 0.49,
+    dmgMul: 1.02, dmgRamp: 0.38,
     // 3막 전용 5종 — 여기까지 온 값이다
     catchable: ['scyther', 'pinsir', 'electabuzz', 'magmar', 'jynx'],
     weak:   [['electabuzz'], ['magmar'], ['jynx']],

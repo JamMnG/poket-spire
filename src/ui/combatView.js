@@ -293,9 +293,31 @@ export function createCombatView({ combat, onFinish }) {
 
   function showEnemyTip(node, e) {
     const weak = weaknessesOf(e.types).map(typeKo).join(', ');
+    // 엘리트·보스의 상태이상 반감은 규칙인데 화면 어디에도 안 적혀 있었다 —
+    // 독 4를 걸었는데 2가 쌓이면 버그로 보인다. 여기서 미리 말해 준다.
+    const eliteNote = (e.def.elite || e.def.boss)
+      ? `<div class="tt-sec">${e.def.boss ? '보스' : '엘리트'} — 상태이상을 절반만 받고, 얼음은 1턴까지다.</div>`
+      : '';
     showTip(node, `<div class="tt-name">${e.ko}</div>` +
       `${e.types.map(typeKo).join(' · ')} 타입<br>` +
-      `<div class="tt-sec">약점 <span class="tt-super">${weak || '없음'}</span></div>`);
+      `<div class="tt-sec">약점 <span class="tt-super">${weak || '없음'}</span></div>` + eliteNote);
+  }
+
+  /** "이 숫자가 왜 이 숫자인가" — 미리보기 칩에 붙는 내역 */
+  function previewTip(pv, cardKo) {
+    if (!pv || !pv.parts) return '';
+    const p = pv.parts;
+    const rows = [`기본 위력 <b>${p.power}</b>`];
+    if (p.powerAdd) rows.push(`도구·날씨 <b>+${p.powerAdd}</b>`);
+    if (pv.stab > 1) rows.push(`자속(타입 일치) <b>×${pv.stab}</b>`);
+    if (pv.mult !== 1) rows.push(`상성 <b>×${pv.mult}</b>`);
+    if (p.atkRankMul !== 1) rows.push(`내 공격 랭크 <b>×${p.atkRankMul.toFixed(2)}</b>`);
+    if (p.defRankMul !== 1) rows.push(`상대 방어 랭크 <b>÷${p.defRankMul.toFixed(2)}</b>`);
+    if (p.damageMul !== 1) rows.push(`도구 배수 <b>×${p.damageMul}</b>`);
+    if (p.nextMult !== 1) rows.push(`도우미 <b>×${p.nextMult}</b>`);
+    if (p.burned) rows.push(`화상(내 쪽) <b>×0.75</b>`);
+    const hitTxt = pv.hits > 1 ? ` × ${pv.hits}타` : '';
+    return `<div class="tt-name">${cardKo} — 예상 ${pv.dmg}${hitTxt}</div>` + rows.join('<br>');
   }
 
   // ── 손패 ─────────────────────────────────────────────────
@@ -304,8 +326,9 @@ export function createCombatView({ combat, onFinish }) {
     const nodes = S.hand.map((inst, i) => {
       const check = combat.playability(inst);
       const target = pickedCard ? null : combat.aliveEnemies()[0];
+      const pv = combat.previewCard(inst, target);
       const node = cardEl(inst, {
-        preview: combat.previewCard(inst, target),
+        preview: pv,
         unplayable: !check.ok,
         picked: pickedCard === inst.uid,
         onclick: () => onCardClick(inst, check, node),
@@ -319,6 +342,12 @@ export function createCombatView({ combat, onFinish }) {
         },
       });
       if (!check.ok) node.title = check.reason;
+      // 미리보기 숫자에 내역 툴팁 — 상성·자속·도구가 겹치면 21처럼 낯선
+      // 숫자가 되는데, 어디서 왔는지 화면이 직접 답한다
+      if (pv) {
+        const chip = node.querySelector('.card-preview');
+        if (chip) attachTip(chip, () => previewTip(combat.previewCard(inst, pickedCard ? null : combat.aliveEnemies()[0]), resolveCard(inst).ko));
+      }
       // 직전 손패에 없던 카드만 아래에서 올라온다
       if (!prevHand.has(inst.uid)) { node.classList.add('is-drawn'); fresh.push([node, i]); }
       return node;

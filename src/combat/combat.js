@@ -192,6 +192,14 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
   /** 방어도를 거치지 않는 직접 피해 (반동·독·화상) */
   function hurtMemberDirect(m, n) {
     if (!m || n <= 0) return;
+    // 기합의띠 — 문구는 "쓰러질 피해를 버틴다"인데 적 공격 경로에만 있었다.
+    // 독·화상·반동으로 죽는 것도 쓰러지는 것이다 (검증기가 잡아냈다)
+    if (m === front() && m.hp - n <= 0 && S.enduresLeft > 0) {
+      S.enduresLeft--;
+      n = m.hp - 1;
+      say(`${m.ko}이(가) 기합으로 버텼다!`);
+      if (n <= 0) return;
+    }
     m.hp -= n;
     fx({ kind: 'damage', side: 'player', value: n });
     checkFaint(m);
@@ -292,6 +300,10 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
     const power = dmgOp.op === 'damageScaled'
       ? dmgOp.base + scaleValue(dmgOp.per, target) * (dmgOp.mult ?? 1)
       : dmgOp.power;
+    const powerAdd = sumHook(relics, 'powerMod', K, c) + weatherAdd(c);
+    const damageMul = mulHook(relics, 'damageMul', K, c);
+    const nextMult = c.kind === 'ATTACK' ? S.nextMult : 1;
+    const burned = (me()?.status?.BURN || 0) > 0;
     const r = playerDamage({
       power,
       moveType: c.type,
@@ -299,13 +311,19 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
       defenderTypes: target.types,
       atkRank: S.ranks.ATK,
       defRank: target.ranks.DEF,
-      powerAdd: sumHook(relics, 'powerMod', K, c) + weatherAdd(c),
-      damageMul: mulHook(relics, 'damageMul', K, c),
-      nextMult: c.kind === 'ATTACK' ? S.nextMult : 1,
-      burned: (me()?.status?.BURN || 0) > 0,
-      resistFloor,
+      powerAdd, damageMul, nextMult, burned, resistFloor,
     });
-    return { ...r, hits: dmgOp.hits || 1 };
+    // 내역 — "21이 어떻게 나왔나"를 화면이 답할 수 있게 재료를 같이 준다.
+    // 실제로 씨앗기관총+ 21×4 를 보고 계산 버그를 의심한 피드백이 있었다.
+    // (씨드+3, 자속 1.5배, 구애머리띠 2배가 겹친 정상값이었다)
+    return {
+      ...r, hits: dmgOp.hits || 1,
+      parts: {
+        power, powerAdd,
+        atkRankMul: rankMul(S.ranks.ATK), defRankMul: rankMul(target.ranks.DEF),
+        damageMul, nextMult, burned,
+      },
+    };
   }
 
   /**
@@ -651,8 +669,13 @@ export function createCombat({ party, deckCards, seats = null, localSeat = null,
     //   하지 않았다. 방어도 20에 7 피해를 받으면 HP 가 그대로 7 깎였다.
     //   막으라고 있는 것이 적 턴을 못 버티면 존재 이유가 없다.
     //   (빛의점토가 있으면 그 비율만큼 다음 턴으로 넘어간다)
-    const keep = Math.max(0, ...relics.map((id) => RELICS[id]?.blockKeepRatio?.() || 0));
-    S.block = Math.floor(S.block * keep);
+    // ★ 첫 라운드(turn 0)에는 지우지 않는다. begin() 이 방어조끼의 시작
+    //   방어도 6을 준 직후 여기가 돌면서 그대로 지워 버렸다 — 검증기가
+    //   "방어조끼: 방어도 0"으로 잡아낸 실제 버그다.
+    if (S.turn > 0) {
+      const keep = Math.max(0, ...relics.map((id) => RELICS[id]?.blockKeepRatio?.() || 0));
+      S.block = Math.floor(S.block * keep);
+    }
 
     S.turn++;
     S.phase = 'PLAYER';
