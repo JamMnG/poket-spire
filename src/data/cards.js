@@ -741,10 +741,14 @@ export const CARDS = {
 
   // ── 파이리 → 리자드 → 리자몽 ────────────────────────────
   emberfang: {
-    ko: '불꽃엄니', type: 'FIRE', kind: A, rarity: C, target: 'ENEMY',
-    v: { cost: 1, dmg: 8, burn: 3 }, vUp: { dmg: 11, burn: 4 },
-    build: (v) => [{ op: 'damage', power: v.dmg }, { op: 'status', status: 'BURN', amount: v.burn }],
-    text: (v) => `${v.dmg}의 피해. 화상 ${v.burn}.`,
+    // ★ 원래 이름이 '불꽃엄니'였는데 기존 firefang 과 이름이 겹쳤다 —
+    //   같은 이름의 카드 두 장이 서로 다른 효과를 들고 보상 화면에 나란히
+    //   떴다. 화면 이름만 바꾸고 id 는 그대로 둔다. id 를 바꾸면 이 카드를
+    //   덱에 넣고 저장한 판이 불러올 때 터진다 (resolveCard 가 던진다).
+    ko: '회오리불꽃', type: 'FIRE', kind: A, rarity: C, target: 'ENEMY',
+    v: { cost: 1, dmg: 4, hits: 2 }, vUp: { dmg: 6, hits: 2 },
+    build: (v) => [{ op: 'damage', power: v.dmg, hits: v.hits }],
+    text: (v) => `${v.dmg}의 피해를 ${v.hits}번 준다.`,
   },
   dragonrage: {
     ko: '용의분노', type: 'DRAGON', kind: A, rarity: C, target: 'ENEMY',

@@ -476,7 +476,7 @@ const MOVE_ART = {
   // 없는 id 는 타입 기본 모양으로 떨어지는데(544줄), 그러면 새 카드 스무 장이
   // 전부 같은 그림이 된다. "기술마다 그림이 다르다"가 이 게임 카드의 규칙이라
   // 새로 넣을 때마다 여기도 같이 채운다.
-  emberfang: 'jaws', dragonrage: 'burst', wingattack: 'multi', dragondance: 'boost',
+  emberfang: 'whirl', dragonrage: 'burst', wingattack: 'multi', dragondance: 'boost',
   smokescreen: 'ghost', overheat: 'charge', blastburn: 'quake',
   bubble: 'drip', rapidspin: 'whirl', skullbash: 'press', aquatail: 'tail',
   shellarmor: 'shell', irondefensecard: 'stockpile', hydrocannon: 'drench',
