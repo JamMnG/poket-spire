@@ -12,13 +12,17 @@
 // ─────────────────────────────────────────────────────────────
 import { offenseMultiplier, defenseMultiplier, stabBonus } from '../data/types.js';
 
-export const RANK_MIN = -6;
-export const RANK_MAX = 6;
+export const RANK_MIN = -4;
+// ★ 원작은 ±6에 단계당 50%다. 여기서는 ±4에 단계당 25%로 눌렀다.
+//   원작 값 그대로면 칼춤 두 장에 피해가 3배, 모래뿌리기 몇 장에 적이
+//   바보가 됐다 — 랭크가 상성보다 큰 축이 되면 안 된다.
+//   새 표: +1=1.25배 +2=1.5배 +4=2배 / -1=0.8배 -2=0.67배 -4=0.5배
+export const RANK_MAX = 4;
 
-/** 원작 랭크 배율 */
+/** 랭크 배율 — 단계당 25% (위 주석 참고) */
 export const rankMul = (n) => {
   const r = Math.max(RANK_MIN, Math.min(RANK_MAX, n | 0));
-  return r >= 0 ? (2 + r) / 2 : 2 / (2 - r);
+  return r >= 0 ? (4 + r) / 4 : 4 / (4 - r);
 };
 
 export const clampRank = (n) => Math.max(RANK_MIN, Math.min(RANK_MAX, n));

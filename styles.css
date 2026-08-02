@@ -1090,3 +1090,24 @@ body.is-portrait #app { visibility: hidden; }
 
 /* 동료 교체 화면 — 새 동료 쪽이 빛난다 */
 .party-card.is-new { border-color: var(--gold); box-shadow: 0 0 12px rgba(232,197,106,.3); }
+
+/* 카드를 올린 동안 적마다 뜨는 예상 피해 (combatView renderEnemies) */
+.dmg-preview {
+  position: absolute; left: 50%; top: 34%; transform: translateX(-50%);
+  z-index: 7; pointer-events: none;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 17px; font-weight: 900; color: #fff;
+  background: rgba(10,8,5,.88); border: 1px solid #6b5333;
+  text-shadow: 0 1px 3px #000;
+  animation: dmgpv-in .12s ease-out;
+}
+.dmg-preview.super { color: #ffd257; border-color: #ffd257; }
+.dmg-preview.resist { color: #b8c8d8; }
+@keyframes dmgpv-in { from { opacity: 0; transform: translateX(-50%) translateY(4px); } }
+
+/* 의도가 스프라이트에 가려지지 않게 — 숫자에 깔개도 깐다 */
+.intent { z-index: 6; }
+.intent-num {
+  padding: 0 7px; border-radius: 999px;
+  background: rgba(10,8,5,.78);
+}

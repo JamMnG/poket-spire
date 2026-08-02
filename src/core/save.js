@@ -82,6 +82,7 @@ export function writeSave(run, combat) {
     eventsSeen: R.eventsSeen.slice(),
     weakUsed: R.weakUsed,
     usedEncounters: R.usedEncounters.slice(),
+    eliteBag: R.eliteBag.map((g) => g.slice()),
     lastRoom: R.lastRoom,
     // 전투 중이었다면 그 전투까지
     combat: combat ? { roomType: R.lastCombatRoom || 'MONSTER', snap: combat.snapshot() } : null,

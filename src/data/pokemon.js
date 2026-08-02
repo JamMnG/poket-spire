@@ -35,7 +35,7 @@ export const POKEMON = {
   // signatures: 시작 덱에 들어가는 두 장. 한 장이 깔고 한 장이 거둔다.
   //             cards: 야생으로 만나 합류했을 때 덱에 섞이는 두 장.
   charmander: {
-    id: 'charmander', ko: '파이리', types: ['FIRE'], hp: 70,
+    id: 'charmander', ko: '파이리', types: ['FIRE'], hp: 66,
     body: '#f2803c', accent: '#ffd257', belly: '#f8e3bb',
     starter: true,
     signatures: ['ember', 'kindle'],          // 화상을 붙이고 → 화상만큼 때린다
@@ -53,7 +53,7 @@ export const POKEMON = {
     style: '버티며 되받아친다',
   },
   bulbasaur: {
-    id: 'bulbasaur', ko: '이상해씨', types: ['GRASS', 'POISON'], hp: 66,
+    id: 'bulbasaur', ko: '이상해씨', types: ['GRASS', 'POISON'], hp: 62,
     body: '#63bc7a', accent: '#4f9e52', belly: '#bfe0a8',
     starter: true,
     // ★ 원래는 씨뿌리기 + 흡수였는데, 그러면 파이리(화상을 쌓고 → 화상으로

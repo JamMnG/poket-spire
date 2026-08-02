@@ -55,6 +55,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     eventsSeen: [],
     weakUsed: 0,
     usedEncounters: [],
+    eliteBag: [],           // 이 막에서 아직 안 만난 엘리트 조 (중복 금지)
     request: null,          // UI에 무언가를 띄워 달라는 신호
     lastRoom: null,
     lastCombatRoom: null,   // 전투 중 저장했을 때 어떤 방이었는지
@@ -109,6 +110,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     R.eventsSeen = (saved.eventsSeen || []).slice();
     R.weakUsed = saved.weakUsed || 0;
     R.usedEncounters = (saved.usedEncounters || []).slice();
+    R.eliteBag = (saved.eliteBag || []).map((g) => g.slice());
     R.lastRoom = saved.lastRoom;
     streams.setState(saved.rng);
   }
@@ -258,7 +260,25 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     const rng = streams.map;
     const act = actOf(R.act);
     if (kind === 'BOSS') return { ids: act.boss };
-    if (kind === 'ELITE') return { ids: rng.pick(act.elite) };
+    if (kind === 'ELITE') {
+      // ★ 그냥 뽑으면 같은 엘리트가 세 번 나온다 — 파이리로 3막을 돌던
+      //   피드백에서 엘리트가 전부 갸라도스였다. 막마다 조를 섞은 가방에서
+      //   하나씩 꺼내 다 만나기 전에는 같은 조가 반복되지 않게 한다.
+      if (!R.eliteBag.length) {
+        const idx = act.elite.map((_, i) => i);
+        rng.shuffle(idx);
+        // 스타터 역상성 조가 첫 두 자리에 연달아 오지 않게 한다.
+        // 아예 안 나오게 하지는 않는다 — 상성 압박도 게임의 일부다.
+        const starterType = POKEMON[R.starter].types[0];
+        const hard = (i) => (act.eliteHard?.[i] || []).includes(starterType);
+        if (idx.length >= 2 && hard(idx[0]) && hard(idx[1])) {
+          const soft = idx.findIndex((i, k) => k >= 2 && !hard(i));
+          if (soft > 1) [idx[1], idx[soft]] = [idx[soft], idx[1]];
+        }
+        R.eliteBag = idx.map((i) => act.elite[i]);
+      }
+      return { ids: R.eliteBag.shift() };
+    }
     // 막마다 처음 두세 판은 쉬운 조합에서만 — 들어서자마자 죽으면 배울 기회가 없다
     const table = R.weakUsed < (R.act === 1 ? 3 : 2) ? act.weak : act.normal;
     if (table === act.weak) R.weakUsed++;
@@ -308,6 +328,7 @@ export function createRun({ seed = randomSeed(), starterId = 'charmander', saved
     R.weakUsed = 0;
     R.usedEncounters = [];
     R.eventsSeen = [];
+    R.eliteBag = [];          // 새 막 = 새 가방
     return true;
   }
 

@@ -31,8 +31,8 @@ export const ACTS = [
     name: '상록의 숲',
     blurb: '풀숲에서 부스럭거리는 것들.',
     floors: 15,
-    hpMul: 0.77, hpRamp: 0.56,
-    dmgMul: 0.69, dmgRamp: 0.36,
+    hpMul: 0.80, hpRamp: 0.58,
+    dmgMul: 0.72, dmgRamp: 0.38,
     // 이 막에서 야생으로 만나 잡을 수 있는 종
     catchable: ['pikachu', 'rattata', 'pidgey', 'sandshrew', 'zubat', 'caterpie', 'vulpix'],
     weak:   [['rattata'], ['pidgey'], ['caterpie', 'weedle'], ['rattata', 'rattata']],
@@ -44,8 +44,12 @@ export const ACTS = [
     // ★ 엘리트는 혼자 안 나온다. 혼자 나오면 디버프를 겹겹이 발라 바보로
     //   만들 수 있었다(대상이 하나뿐이므로). 부하가 있으면 광역기와 대상
     //   선택이 생기고, 엘리트 저항(combat.js inflict)과 함께 잠금이 풀린다.
-    // 1막 부하는 제일 약한 축으로 — 덱 10장 시절에 만나는 엘리트다
-    elite: [['onix', 'rattata'], ['arbok', 'weedle'], ['primeape', 'rattata']],
+    // 1막 부하는 제일 약한 축으로 — 덱 10장 시절에 만나는 엘리트다.
+    // 조를 넷으로 늘리고 타입을 벌렸다: 바위 / 독 / 격투 / 땅.
+    elite: [['onix', 'rattata'], ['arbok', 'weedle'], ['primeape', 'rattata'], ['sandshrew', 'geodude']],
+    // 이 조가 어느 스타터에게 역상성인가 — 엘리트 순서를 섞을 때
+    // 같은 스타터 카운터가 연달아 나오지 않게 하는 데 쓴다 (run.js eliteBag)
+    eliteHard: [['FIRE'], ['GRASS'], [], ['FIRE']],
     boss: ['beedrill'],
   },
   {
@@ -53,8 +57,8 @@ export const ACTS = [
     name: '달의 신전',
     blurb: '월장석이 박힌 동굴. 빛이 닿지 않는 곳에서 무언가 웃는다.',
     floors: 16,
-    hpMul: 0.89, hpRamp: 0.44,
-    dmgMul: 0.81, dmgRamp: 0.31,
+    hpMul: 0.93, hpRamp: 0.46,
+    dmgMul: 0.85, dmgRamp: 0.33,
     catchable: ['geodude', 'machop', 'abra', 'gastly', 'poliwag', 'magnemite'],
     weak:   [['diglett', 'diglett'], ['paras'], ['zubat', 'zubat']],
     normal: [
@@ -63,7 +67,8 @@ export const ACTS = [
       ['golbat', 'paras'], ['machop', 'machop'], ['gastlyE', 'gastlyE'],
       ['nidorino', 'diglett'],
     ],
-    elite: [['golduck', 'golbat'], ['marowak', 'diglett'], ['machoke', 'machop']],
+    elite: [['golduck', 'golbat'], ['marowak', 'diglett'], ['machoke', 'machop'], ['nidorino', 'gastlyE']],
+    eliteHard: [['FIRE'], ['FIRE'], [], ['GRASS']],
     boss: ['gengar'],
   },
   {
@@ -71,8 +76,8 @@ export const ACTS = [
     name: '첨탑',
     blurb: '끝까지 오른 자만 만나는 것들이 기다린다.',
     floors: 17,
-    hpMul: 1.18, hpRamp: 0.50,
-    dmgMul: 1.02, dmgRamp: 0.38,
+    hpMul: 1.24, hpRamp: 0.52,
+    dmgMul: 1.08, dmgRamp: 0.40,
     // 3막 전용 5종 — 여기까지 온 값이다
     catchable: ['scyther', 'pinsir', 'electabuzz', 'magmar', 'jynx'],
     weak:   [['electabuzz'], ['magmar'], ['jynx']],
@@ -81,7 +86,12 @@ export const ACTS = [
       ['tentacruel'], ['scyther', 'jynx'], ['victreebel', 'tentacruel'],
       ['pinsir', 'electabuzz'], ['magmar', 'jynx'], ['golbat', 'scyther'],
     ],
-    elite: [['gyarados', 'tentacruel'], ['charizard', 'magmar'], ['blastoise', 'victreebel']],
+    // ★ 원래 물/불/물 세 조뿐이었다 — 파이리로 오면 엘리트가 "항상
+    //   갸라도스 아니면 거북왕"이라, 어려운 게 아니라 억울했다.
+    //   벌레·얼음/전기 조를 더해 다섯 타입으로 벌린다.
+    elite: [['gyarados', 'tentacruel'], ['charizard', 'magmar'], ['blastoise', 'victreebel'],
+            ['scyther', 'pinsir'], ['jynx', 'electabuzz']],
+    eliteHard: [['FIRE'], ['GRASS'], ['FIRE'], ['GRASS'], ['GRASS', 'WATER']],
     boss: ['mewtwo'],
   },
 ];
@@ -147,8 +157,8 @@ export const scaleFor = (n) => PLAYER_SCALE[Math.min(3, Math.max(1, n | 0))] || 
  */
 export const ROOM_SCALE = {
   MONSTER: { hp: 1,    dmg: 1    },
-  ELITE:   { hp: 1.06, dmg: 1.14 },
-  BOSS:    { hp: 1.35, dmg: 1.24 },
+  ELITE:   { hp: 1.07, dmg: 1.18 },
+  BOSS:    { hp: 1.40, dmg: 1.30 },
 };
 // 방 배율을 새로 얹은 만큼 위의 막 배율은 같이 내렸다 — 둘을 곱한 값이
 // 최종 난이도다. 막 배율만 보고 "약해졌네" 하고 되돌리면 안 된다.

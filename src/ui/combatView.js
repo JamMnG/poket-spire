@@ -43,6 +43,7 @@ export function createCombatView({ combat, onFinish }) {
   const fieldEl     = $('#field-bar');
 
   let pickedCard = null;      // 대상을 고르는 중인 카드
+  let hoverCard = null;       // 손패에서 올려 둔 카드 — 적마다 예상 피해를 띄운다
   let hoverBench = null;      // 벤치에 올려 둔 손 — 의도 숫자를 이 기준으로 다시 센다
   let playing = false;        // 카드 연출이 도는 동안 다음 입력을 막는다
   let prevHand = new Set();   // 직전 손패 — 새로 뽑힌 카드만 올라오게 하려고
@@ -209,10 +210,15 @@ export function createCombatView({ combat, onFinish }) {
         onmouseleave: () => { node.classList.remove('is-target'); hideTip(); },
       });
 
+      // ★ 의도는 스프라이트 위(-46px)에 뜨는데, 롱스톤·갸라도스처럼 그림이
+      //   세로로 큰 종은 머리가 그 자리까지 올라와 숫자를 가렸다.
+      //   scale 만큼 더 밀어 올린다.
+      const lift = { top: `${-46 - Math.round(Math.max(0, ((e.def.scale || 1) - 1)) * 52)}px` };
+
       // 의도 — 얼어붙었으면 "이번 턴은 못 움직인다" 를 같은 자리에 보여 준다
       if (!e.dead && e.status.FREEZE > 0) {
         node.appendChild(attachTip(
-          el('div.intent', {}, [el('div.intent-icon', { html: intentIcon('FROZEN') })]),
+          el('div.intent', { style: lift }, [el('div.intent-icon', { html: intentIcon('FROZEN') })]),
           `<div class="tt-name">얼음 ${e.status.FREEZE}</div>얼어붙어 ${e.status.FREEZE}턴 동안 아무것도 하지 못한다.`,
         ));
       } else if (e.intent && !e.dead) {
@@ -223,7 +229,7 @@ export function createCombatView({ combat, onFinish }) {
           ? (pv.mult === 0 ? '0' : (pv.hits > 1 ? `${pv.dmg}×${pv.hits}` : `${pv.dmg}`))
           : '';
 
-        node.appendChild(attachTip(el('div.intent', {}, [
+        node.appendChild(attachTip(el('div.intent', { style: lift }, [
           el('div.intent-icon', { html: intentIcon(mv.intent) }),
           num && el(`div.intent-num.${cls}`.replace(/\.$/, ''), { text: num }),
           mv.type && el('div.intent-type', { text: typeKo(mv.type), style: { background: typeColor(mv.type) } }),
@@ -246,6 +252,22 @@ export function createCombatView({ combat, onFinish }) {
           ...rankBadges(e.ranks),
         ],
       }));
+
+      // ★ 카드를 올리거나 고른 동안, 적마다 "이 카드를 여기 쓰면 몇이 들어가나"
+      //   를 붙인다. 적이 둘 이상이면 손패의 미리보기 숫자는 첫 번째 적
+      //   기준이라, 상성이 갈리는 순간 누구를 때릴지 알 길이 없었다.
+      const src = hoverCard
+        || (pickedCard && S.hand.find((h) => h.uid === pickedCard))
+        || null;
+      if (src && !e.dead) {
+        const pv = combat.previewCard(src, e);
+        if (pv && pv.dmg != null) {
+          const cls = pv.mult > 1 ? 'super' : pv.mult < 1 ? 'resist' : '';
+          node.appendChild(el(`div.dmg-preview.${cls}`.replace(/\.$/, ''), {
+            text: pv.hits > 1 ? `${pv.dmg}×${pv.hits}` : `${pv.dmg}`,
+          }));
+        }
+      }
       return node;
     });
 
@@ -287,8 +309,14 @@ export function createCombatView({ combat, onFinish }) {
         unplayable: !check.ok,
         picked: pickedCard === inst.uid,
         onclick: () => onCardClick(inst, check, node),
-        onenter: () => node.classList.add('is-hover'),
-        onleave: () => node.classList.remove('is-hover'),
+        onenter: () => {
+          node.classList.add('is-hover');
+          if (combat.aliveEnemies().length > 1) { hoverCard = inst; renderEnemies(); }
+        },
+        onleave: () => {
+          node.classList.remove('is-hover');
+          if (hoverCard) { hoverCard = null; renderEnemies(); }
+        },
       });
       if (!check.ok) node.title = check.reason;
       // 직전 손패에 없던 카드만 아래에서 올라온다
